@@ -1,0 +1,43 @@
+<!-- Copyright 2000-2022 JetBrains s.r.o. and other contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file. -->
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+
+<idea-plugin>
+
+  <!-- Unique id for this plugin. Must stay constant for the life of the plugin. -->
+  <id>cn.hylstudio.skykoma.plugin.idea</id>
+
+  <!-- Text to display as name on Preferences/Settings | Plugin page -->
+  <name>Skykoma Plugin For IDEA</name>
+
+  <!-- Product and plugin compatibility requirements -->
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.java</depends>
+
+  <!-- Text to display as description on Preferences/Settings | Plugin page -->
+  <description>
+    <![CDATA[
+      Skykoma Plugin For IDEA
+    ]]>
+  </description>
+  <change-notes>
+    <![CDATA[
+      <ul>
+        <li><b>0.0.1</b>init</li>
+      </ul>
+    ]]>
+  </change-notes>
+
+  <!-- Text to display as company information on Preferences/Settings | Plugin page -->
+  <vendor url="https://github.com/dev-assistant/skykoma-plugin-idea">dev-assistant By HylStudio</vendor>
+
+  <actions>
+    <action class="org.intellij.sdk.psi.PsiNavigationDemoAction" id="PsiNavigationDemo"
+            text="PSI Navigation Demo...">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+  </actions>
+  <extensions defaultExtensionNs="com.intellij">
+    <defaultLiveTemplates file="/liveTemplates/skykomaLiveTemplates.xml"/>
+  </extensions>
+
+</idea-plugin>

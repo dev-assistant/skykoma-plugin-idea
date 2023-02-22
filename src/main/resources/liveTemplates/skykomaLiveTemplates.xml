@@ -1,0 +1,12 @@
+<templateSet group="skykoma-idea-plugin">
+    <template name="cl" value="@Column(name = &quot;`$COLUMN1$`&quot;)&#10;private $TYPE$ $COLUMN$;"
+              description="db column" toReformat="true" toShortenFQNames="true">
+        <variable name="TYPE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="COLUMN" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="COLUMN1" expression="snakeCase(COLUMN)" defaultValue="" alwaysStopAt="false"/>
+        <context>
+            <option name="JAVA_DECLARATION" value="true"/>
+            <option name="JAVA_STATEMENT" value="true"/>
+        </context>
+    </template>
+</templateSet>

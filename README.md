@@ -1,2 +1,15 @@
-# skykoma-plugin-idea
-skykoma plugin for idea
+# Skykoma Plugin For IDEA
+尝试尽可能少的减少人工对IDE的重复操作
+
+## skykoma-plugin-idea概要设计
+### 1.模板代码自动生成功能
+模板代码生成主要依赖于LiveTemplate实现，分为静态生成和动态生成，静态生成是上下文无关的，动态生成可感知代码上下文。
+
+#### 静态生成
+如@Autowire @Column 之类的，试用idea自带API完成命名风格的转换。
+
+#### 动态生成
+日志：寻找上下文中可用的LOGGER，若LOGGER不存在则尝试先生成LOGGER字段，并根据当前上下文插入LOGGER语句。
+SQL：寻找上下文中的ORM注解信息，根据字段类型生成默认的建表语句。
+数据复制：根据上下文获取指定类的所有属性，复制到当前上下文中或指定的对象中，代替动态的反射copy避免运行时异常。
+Service：增强自带的创建类过程，根据类名猜测正确的包名，一键生成带注解的Service类和接口并实现对应接口满足主流项目的风格要求，减少人工操作。
