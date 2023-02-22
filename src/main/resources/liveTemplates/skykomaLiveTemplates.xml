@@ -1,6 +1,6 @@
 <templateSet group="skykoma-idea-plugin">
     <template name="cl" value="@Column(name = &quot;`$COLUMN1$`&quot;)&#10;private $TYPE$ $COLUMN$;"
-              description="db column" toReformat="true" toShortenFQNames="true">
+              description="生成ORM列" toReformat="true" toShortenFQNames="true">
         <variable name="TYPE" expression="" defaultValue="" alwaysStopAt="true"/>
         <variable name="COLUMN" expression="" defaultValue="" alwaysStopAt="true"/>
         <variable name="COLUMN1" expression="snakeCase(COLUMN)" defaultValue="" alwaysStopAt="false"/>
