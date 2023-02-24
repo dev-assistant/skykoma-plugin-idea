@@ -1,20 +1,20 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-allprojects {
-    repositories {
-        mavenLocal()
-        maven {  setUrl("https://maven.aliyun.com/repository/public") }
-        maven { setUrl("https://nexus.bsdn.org/content/groups/public/") }
-        mavenCentral()
-    }
-
-    buildscript { 
-        repositories { 
-            maven { setUrl("https://maven.aliyun.com/repository/public")}
-            maven { setUrl("https://nexus.bsdn.org/content/groups/public/")}
-            maven { setUrl("https://plugins.gradle.org/m2/")}
-        }
-    }
-}
+//allprojects {
+//    repositories {
+//        mavenLocal()
+//        maven {  setUrl("https://maven.aliyun.com/repository/public") }
+//        maven { setUrl("https://nexus.bsdn.org/content/groups/public/") }
+//        mavenCentral()
+//    }
+//
+//    buildscript { 
+//        repositories { 
+//            maven { setUrl("https://maven.aliyun.com/repository/public")}
+//            maven { setUrl("https://nexus.bsdn.org/content/groups/public/")}
+//            maven { setUrl("https://plugins.gradle.org/m2/")}
+//        }
+//    }
+//}
 
 plugins {
   id("java")
@@ -22,7 +22,7 @@ plugins {
 }
 
 group = "com.intellij.sdk"
-version = "0.0.2"
+version = "0.0.3"
 
 repositories {
   mavenCentral()

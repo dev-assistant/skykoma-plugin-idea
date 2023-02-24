@@ -22,20 +22,20 @@
   <change-notes>
     <![CDATA[
       <ul>
-        <li><b>0.0.1</b>init</li>
+        <li><b>0.0.3</b>新增常用静态代码模板</li>
       </ul>
     ]]>
   </change-notes>
 
   <!-- Text to display as company information on Preferences/Settings | Plugin page -->
-  <vendor url="https://github.com/dev-assistant/skykoma-plugin-idea">dev-assistant By HylStudio</vendor>
+  <vendor url="https://github.com/dev-assistant/skykoma-plugin-idea">Dev Assistant By HylStudio</vendor>
 
-  <actions>
+  <!-- <actions>
     <action class="org.intellij.sdk.psi.PsiNavigationDemoAction" id="PsiNavigationDemo"
             text="PSI Navigation Demo...">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </action>
-  </actions>
+  </actions> -->
   <extensions defaultExtensionNs="com.intellij">
     <defaultLiveTemplates file="/liveTemplates/skykomaLiveTemplates.xml"/>
   </extensions>
