@@ -17,35 +17,41 @@
 //}
 
 plugins {
-  id("java")
-  id("org.jetbrains.intellij") version "1.13.0"
+    id("java")
+    id("org.jetbrains.intellij") version "1.13.0"
 }
 
-group = "com.intellij.sdk"
-version = "0.0.3"
+group = "cn.hylstudio.skykoma.plugin.idea"
+version = "0.0.4"
 
 repositories {
-  mavenCentral()
+    mavenCentral()
 }
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-  version.set("2022.1.4")
-  plugins.set(listOf("com.intellij.java"))
+    version.set("2022.1.4")
+    plugins.set(listOf("com.intellij.java"))
 }
 
 tasks {
-  buildSearchableOptions {
-    enabled = false
-  }
+    withType {
+        compileJava {
+            options.encoding = "UTF-8"
+        }
+    }
+    buildSearchableOptions {
+        enabled = false
+    }
 
-  patchPluginXml {
-    version.set("${project.version}")
-    sinceBuild.set("212")
-    untilBuild.set("223.*")
-  }
+    patchPluginXml {
+        version.set("${project.version}")
+        sinceBuild.set("212")
+        untilBuild.set("223.*")
+    }
 }

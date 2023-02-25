@@ -16,9 +16,9 @@ public class PsiNavigationDemoAction extends AnAction {
   public void actionPerformed(AnActionEvent anActionEvent) {
     Editor editor = anActionEvent.getData(CommonDataKeys.EDITOR);
     PsiFile psiFile = anActionEvent.getData(CommonDataKeys.PSI_FILE);
-      if (editor == null || psiFile == null) {
-          return;
-      }
+    if (editor == null || psiFile == null) {
+      return;
+    }
     int offset = editor.getCaretModel().getOffset();
 
     final StringBuilder infoBuilder = new StringBuilder();
@@ -27,15 +27,15 @@ public class PsiNavigationDemoAction extends AnAction {
     if (element != null) {
       PsiMethod containingMethod = PsiTreeUtil.getParentOfType(element, PsiMethod.class);
       infoBuilder
-              .append("Containing method: ")
-              .append(containingMethod != null ? containingMethod.getName() : "none")
-              .append("\n");
+          .append("Containing method: ")
+          .append(containingMethod != null ? containingMethod.getName() : "none")
+          .append("\n");
       if (containingMethod != null) {
         PsiClass containingClass = containingMethod.getContainingClass();
         infoBuilder
-                .append("Containing class: ")
-                .append(containingClass != null ? containingClass.getName() : "none")
-                .append("\n");
+            .append("Containing class: ")
+            .append(containingClass != null ? containingClass.getName() : "none")
+            .append("\n");
 
         infoBuilder.append("Local variables:\n");
         containingMethod.accept(new JavaRecursiveElementVisitor() {

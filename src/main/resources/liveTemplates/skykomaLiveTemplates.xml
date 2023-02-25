@@ -1,67 +1,91 @@
 <templateSet group="Skykoma Plugin For Idea">
     <template name="cl" value="@Column(name = &quot;`$COLUMN1$`&quot;)&#10;private $TYPE$ $COLUMN$;"
-        description="ORM列补全" toReformat="true" toShortenFQNames="true">
-        <variable name="TYPE" expression="" defaultValue="" alwaysStopAt="true" />
-        <variable name="COLUMN" expression="" defaultValue="" alwaysStopAt="true" />
-        <variable name="COLUMN1" expression="snakeCase(COLUMN)" defaultValue="" alwaysStopAt="false" />
+              description="ORM列补全" toReformat="true" toShortenFQNames="true">
+        <variable name="TYPE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="COLUMN" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="COLUMN1" expression="snakeCase(COLUMN)" defaultValue="" alwaysStopAt="false"/>
         <context>
-            <option name="JAVA_DECLARATION" value="true" />
-            <option name="JAVA_STATEMENT" value="true" />
+            <option name="JAVA_DECLARATION" value="true"/>
+            <option name="JAVA_STATEMENT" value="true"/>
         </context>
     </template>
     <template name="lg"
-        value="private static final Logger LOGGER = LoggerFactory.getLogger($CLASS$.class);&#10;"
-        description="声明logger" toReformat="true" toShortenFQNames="true">
-        <variable name="CLASS" expression="className()" defaultValue="" alwaysStopAt="true" />
+              value="private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger($CLASS$.class);&#10;"
+              description="声明logger" toReformat="true" toShortenFQNames="true">
+        <variable name="CLASS" expression="className()" defaultValue="" alwaysStopAt="true"/>
         <context>
-            <option name="JAVA_DECLARATION" value="true" />
+            <option name="JAVA_DECLARATION" value="true"/>
         </context>
     </template>
     <template name="vc" value="this.$FIELDS$ = v.get$GETTER$(); $END$" description="复制属性"
-        toReformat="true"
-        toShortenFQNames="true">
-        <variable name="FIELDS" expression="complete()" defaultValue="" alwaysStopAt="true" />
-        <variable name="GETTER" expression="complete()" defaultValue="" alwaysStopAt="true" />
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="FIELDS" expression="complete()" defaultValue="" alwaysStopAt="true"/>
+        <variable name="GETTER" expression="complete()" defaultValue="" alwaysStopAt="true"/>
         <context>
-            <option name="JAVA_DECLARATION" value="true" />
-            <option name="JAVA_STATEMENT" value="true" />
+            <option name="JAVA_DECLARATION" value="true"/>
+            <option name="JAVA_STATEMENT" value="true"/>
         </context>
     </template>
     <template name="wf" value="@Autowired&#10;private $type$ $field$;" description="声明注入字段"
-        toReformat="false"
-        toShortenFQNames="true">
-        <variable name="type" expression="complete()" defaultValue="" alwaysStopAt="true" />
+              toReformat="false"
+              toShortenFQNames="true">
+        <variable name="type" expression="complete()" defaultValue="" alwaysStopAt="true"/>
         <variable name="field" expression="suggestVariableName()" defaultValue=""
-            alwaysStopAt="true" />
+                  alwaysStopAt="true"/>
         <context>
-            <option name="JAVA_DECLARATION" value="true" />
+            <option name="JAVA_DECLARATION" value="true"/>
         </context>
     </template>
     <template name="psfs" value="private static final String $field$ = &quot;$value$&quot;;"
-        description="private static final string" toReformat="false" toShortenFQNames="true">
-        <variable name="field" expression="" defaultValue="" alwaysStopAt="true" />
-        <variable name="value" expression="" defaultValue="" alwaysStopAt="true" />
+              description="private static final string" toReformat="false" toShortenFQNames="true">
+        <variable name="field" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="value" expression="" defaultValue="" alwaysStopAt="true"/>
         <context>
-            <option name="JAVA_DECLARATION" value="true" />
+            <option name="JAVA_DECLARATION" value="true"/>
         </context>
     </template>
     <template name="dcl"
-        value="&#10;@Id&#10;@GeneratedValue(strategy = GenerationType.IDENTITY)&#10;@Column(name = &quot;id&quot;)&#10;private Integer id;&#10;&#10;$END$&#10;&#10;@Column(name = &quot;created_at&quot;)&#10;private Timestamp createdAt;&#10;&#10;@Column(name = &quot;updated_at&quot;, insertable = false, updatable = false)&#10;private Timestamp updatedAt;&#10;&#10;@PrePersist&#10;public void prePersist() {&#10;    Timestamp timestamp = new Timestamp(System.currentTimeMillis());&#10;    createdAt = timestamp;&#10;    updatedAt = timestamp;&#10;}&#10;&#10;@PreUpdate&#10;public void preUpdate() {&#10;    updatedAt = new Timestamp(System.currentTimeMillis());&#10;}&#10;"
-        description="默认ORM列" toReformat="true" toShortenFQNames="true">
+              value="&#10;@javax.persistence.Id&#10;@javax.persistence.GeneratedValue(strategy = javax.persistence.GenerationType.IDENTITY)&#10;@javax.persistence.Column(name = &quot;id&quot;)&#10;private Integer id;&#10;&#10;$END$&#10;&#10;@javax.persistence.Column(name = &quot;created_at&quot;)&#10;private Timestamp createdAt;&#10;&#10;@javax.persistence.Column(name = &quot;updated_at&quot;, insertable = false, updatable = false)&#10;private java.sql.Timestamp updatedAt;&#10;&#10;@javax.persistence.PrePersist&#10;public void prePersist() {&#10;    java.sql.Timestamp timestamp = new Timestamp(System.currentTimeMillis());&#10;    createdAt = timestamp;&#10;    updatedAt = timestamp;&#10;}&#10;&#10;@javax.persistence.PreUpdate&#10;public void preUpdate() {&#10;    updatedAt = new Timestamp(System.currentTimeMillis());&#10;}&#10;"
+              description="默认ORM列" toReformat="true" toShortenFQNames="true">
         <context>
-            <option name="JAVA_DECLARATION" value="true" />
-            <option name="JAVA_STATEMENT" value="true" />
+            <option name="JAVA_DECLARATION" value="true"/>
+            <option name="JAVA_STATEMENT" value="true"/>
         </context>
     </template>
     <template name="postjson"
-        value="String url = $URL$;&#10;&#10;Map&lt;String, String&gt; payload = new HashMap&lt;&gt;(2);&#10;$PAYLOAD$&#10;String responseJson = okHttpService.postJsonBody(url, gson.toJson(payload));&#10;if (StringUtils.isEmpty(responseJson)) {&#10;    LOGGER.error(&quot;$OP$ failed, response is empty&quot;);&#10;    return null;&#10;}&#10;$RESPONSE$ respone = null;&#10;try {&#10;    respone = gson.fromJson(responseJson, $RESPONSE$.class);&#10;} catch (Exception e) {&#10;    LOGGER.error(&quot;$OP$  failed, response format error1, data = [{}]&quot;, responseJson);&#10;    return null;&#10;}&#10;if (respone == null) {&#10;    LOGGER.error(&quot;$OP$ failed, response format error2, data = [{}]&quot;, responseJson);&#10;    return null;&#10;}&#10;String code = respone.getCode();&#10;if (code == null) {&#10;    LOGGER.error(&quot;$OP$ failed, response format error3, code missing, data = [{}]&quot;, responseJson);&#10;    return null;&#10;}"
-        description="http postjson" toReformat="false" toShortenFQNames="true">
-        <variable name="URL" expression="" defaultValue="" alwaysStopAt="true" />
-        <variable name="PAYLOAD" expression="" defaultValue="" alwaysStopAt="true" />
-        <variable name="OP" expression="" defaultValue="" alwaysStopAt="true" />
-        <variable name="RESPONSE" expression="" defaultValue="" alwaysStopAt="true" />
+              value="String url = $URL$;&#10;&#10;Map&lt;String, String&gt; payload = new HashMap&lt;&gt;(2);&#10;$PAYLOAD$&#10;String responseJson = okHttpService.postJsonBody(url, gson.toJson(payload));&#10;if (StringUtils.isEmpty(responseJson)) {&#10;    LOGGER.error(&quot;$OP$ failed, response is empty&quot;);&#10;    return null;&#10;}&#10;$RESPONSE$ respone = null;&#10;try {&#10;    respone = gson.fromJson(responseJson, $RESPONSE$.class);&#10;} catch (Exception e) {&#10;    LOGGER.error(&quot;$OP$  failed, response format error1, data = [{}]&quot;, responseJson);&#10;    return null;&#10;}&#10;if (respone == null) {&#10;    LOGGER.error(&quot;$OP$ failed, response format error2, data = [{}]&quot;, responseJson);&#10;    return null;&#10;}&#10;String code = respone.getCode();&#10;if (code == null) {&#10;    LOGGER.error(&quot;$OP$ failed, response format error3, code missing, data = [{}]&quot;, responseJson);&#10;    return null;&#10;}"
+              description="http postjson" toReformat="false" toShortenFQNames="true">
+        <variable name="URL" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="PAYLOAD" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="OP" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="RESPONSE" expression="" defaultValue="" alwaysStopAt="true"/>
         <context>
-            <option name="JAVA_STATEMENT" value="true" />
+            <option name="JAVA_STATEMENT" value="true"/>
+        </context>
+    </template>
+    <template name="lgm" value="$1$" description="打印日志记录当前方法参数和局部变量" toReformat="true"
+              toShortenFQNames="false">
+        <variable name="1" expression="genLogBeforeCurrentLine()"
+                  defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="JAVA_STATEMENT" value="true"/>
+        </context>
+    </template>
+    <template name="vca" value="$1$&#10;$END$" description="复制参数所有属性" toReformat="true"
+              toShortenFQNames="false">
+        <variable name="1" expression="genAllSetterByParam()"
+                  defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="JAVA_STATEMENT" value="true"/>
+        </context>
+    </template>
+    <template name="sqlc" value="$1$&#10;$END$" description="生成当前类的sql" toReformat="true"
+              toShortenFQNames="false">
+        <variable name="1" expression="genCreateTableSql()"
+                  defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="JAVA_DECLARATION" value="true"/>
         </context>
     </template>
 </templateSet>
