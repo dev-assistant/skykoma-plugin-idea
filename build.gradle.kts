@@ -22,7 +22,7 @@ plugins {
 }
 
 group = "cn.hylstudio.skykoma.plugin.idea"
-version = "0.0.4"
+version = "0.0.5"
 
 repositories {
     mavenCentral()

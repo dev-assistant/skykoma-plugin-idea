@@ -27,7 +27,7 @@
             <option name="JAVA_STATEMENT" value="true"/>
         </context>
     </template>
-    <template name="wf" value="@Autowired&#10;private $type$ $field$;" description="声明注入字段"
+    <template name="wf" value="@org.springframework.beans.factory.annotation.Autowired&#10;private $type$ $field$;" description="声明注入字段"
               toReformat="false"
               toShortenFQNames="true">
         <variable name="type" expression="complete()" defaultValue="" alwaysStopAt="true"/>

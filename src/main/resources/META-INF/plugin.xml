@@ -22,6 +22,7 @@
   <change-notes>
     <![CDATA[
       <ul>
+        <li><b>0.0.5</b>修复autowire不自动import的bug</li>
         <li><b>0.0.4</b>新增常用动态代码模板</li>
         <li><b>0.0.3</b>新增常用静态代码模板</li>
       </ul>
