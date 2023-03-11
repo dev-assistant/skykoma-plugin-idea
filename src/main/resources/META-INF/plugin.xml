@@ -43,5 +43,13 @@
     <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenLogBeforeCurrentLineMacro"/>
     <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenAllSetterByParamMacro"/>
     <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenCreateTableSqlDDLMacro"/>
+    <psi.treeChangeListener implementation="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaPsiTreeChangeListener"/>
+    <backgroundPostStartupActivity implementation="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaProjectOpenForBackgroundTaskListener"/>
+    <requiredForSmartModeStartupActivity implementation="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaProjectOpenForSmartModeListener"/>
+    <projectService serviceInterface="cn.hylstudio.skykoma.plugin.idea.service.IProjectService"
+                    serviceImplementation="cn.hylstudio.skykoma.plugin.idea.service.impl.ProjectServiceImpl" />
   </extensions>
+  <projectListeners>
+    <listener class="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaBulkFileListener" topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+  </projectListeners>
 </idea-plugin>
