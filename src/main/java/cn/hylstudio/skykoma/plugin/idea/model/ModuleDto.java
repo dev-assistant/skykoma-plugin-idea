@@ -1,12 +1,8 @@
 package cn.hylstudio.skykoma.plugin.idea.model;
 
 import com.intellij.openapi.module.Module;
-import com.intellij.openapi.roots.ModuleRootManager;
-import com.intellij.openapi.vfs.VirtualFile;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.jetbrains.jps.model.java.JavaResourceRootType;
-import org.jetbrains.jps.model.java.JavaSourceRootType;
 
 import java.util.List;
 
@@ -22,5 +18,6 @@ public class ModuleDto {
 
     public ModuleDto(Module module) {
         this.module = module;
+        this.name = module.getName();
     }
 }

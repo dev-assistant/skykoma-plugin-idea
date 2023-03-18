@@ -10,10 +10,12 @@ import java.util.List;
 @NoArgsConstructor
 public class ProjectInfoDto {
     private Project project;
-    private String id;
+    private String key;
     private String name;
     private VCSEntityDto vcsEntityDto;
     private FileDto rootFolder;
-
     private List<ModuleDto> modules;
+    private String scanId;
+    private long lastScanTs;
+
 }

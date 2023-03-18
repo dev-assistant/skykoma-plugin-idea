@@ -40,6 +40,7 @@ intellij {
 }
 
 dependencies {
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
     implementation("org.projectlombok:lombok:1.18.22")
     annotationProcessor("org.projectlombok:lombok:1.18.22")
 }

@@ -2,22 +2,42 @@
 
 package cn.hylstudio.skykoma.plugin.idea.action;
 
-import cn.hylstudio.skykoma.plugin.idea.service.IProjectService;
+import cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.*;
-import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.PsiFile;
+import org.jetbrains.annotations.NotNull;
 
-public class PsiNavigationDemoAction extends AnAction {
+public class HylTestAction extends AnAction {
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
         Project project = anActionEvent.getProject();
-        IProjectService projectService = project.getService(IProjectService.class);
-        projectService.parseProjectInfo(project);
+        assert project != null;
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, "UploadProjectInfo Task") {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(false); // 设置进度条为确定进度条
+                indicator.setFraction(0.0); // 设置初始进度为 0.0
+                // 执行一些耗时操作
+//                for (int i = 0; i < 100; i++) {
+//                    if (indicator.isCanceled()) {
+//                        return; // 用户取消操作
+//                    }
+//                    indicator.setFraction((double) i / 100); // 更新进度条
+//                }
+                IProjectInfoService projectService = project.getService(IProjectInfoService.class);
+                projectService.updateProjectInfo(true);
+                indicator.setFraction(1.0);
+                // 耗时操作完成
+            }
+        });
 //        Editor editor = anActionEvent.getData(CommonDataKeys.EDITOR);
 //        PsiFile psiFile = anActionEvent.getData(CommonDataKeys.PSI_FILE);
 //        if (editor == null || psiFile == null) {

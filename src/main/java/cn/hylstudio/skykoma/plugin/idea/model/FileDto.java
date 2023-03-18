@@ -15,11 +15,13 @@ public class FileDto {
     private String name;
     private String type;//file folder
     private String relativePath;
+    private String absolutePath;
     private List<FileDto> subFiles;
 
     public FileDto(File file, String rootPath) {
         this.name = file.getName();
         this.type = file.isDirectory() ? "folder" : "file";
+        this.absolutePath = "";
         this.relativePath = file.getPath().substring(rootPath.length());
         if (this.relativePath.startsWith(File.separator)) {
             this.relativePath = this.relativePath.substring(1);
@@ -30,5 +32,13 @@ public class FileDto {
         } else {
             this.subFiles = Collections.emptyList();
         }
+    }
+
+    public FileDto(File rootFolder, boolean subFiles) {
+        this.name = rootFolder.getName();
+        this.type = "folder";
+        this.subFiles = Collections.emptyList();
+        this.relativePath = "";
+        this.absolutePath = rootFolder.getPath();
     }
 }

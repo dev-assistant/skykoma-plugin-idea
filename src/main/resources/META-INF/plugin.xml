@@ -3,53 +3,59 @@
 
 <idea-plugin>
 
-  <!-- Unique id for this plugin. Must stay constant for the life of the plugin. -->
-  <id>cn.hylstudio.skykoma.plugin.idea</id>
+    <!-- Unique id for this plugin. Must stay constant for the life of the plugin. -->
+    <id>cn.hylstudio.skykoma.plugin.idea</id>
 
-  <!-- Text to display as name on Preferences/Settings | Plugin page -->
-  <name>Skykoma Plugin For IDEA</name>
+    <!-- Text to display as name on Preferences/Settings | Plugin page -->
+    <name>Skykoma Plugin For IDEA</name>
 
-  <!-- Product and plugin compatibility requirements -->
-  <depends>com.intellij.modules.platform</depends>
-  <depends>com.intellij.java</depends>
+    <!-- Product and plugin compatibility requirements -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.java</depends>
 
-  <!-- Text to display as description on Preferences/Settings | Plugin page -->
-  <description>
-    <![CDATA[
+    <!-- Text to display as description on Preferences/Settings | Plugin page -->
+    <description>
+        <![CDATA[
       Skykoma Plugin For IDEA
     ]]>
-  </description>
-  <change-notes>
-    <![CDATA[
+    </description>
+    <change-notes>
+        <![CDATA[
       <ul>
         <li><b>0.0.5</b>修复autowire不自动import的bug</li>
         <li><b>0.0.4</b>新增常用动态代码模板</li>
         <li><b>0.0.3</b>新增常用静态代码模板</li>
       </ul>
     ]]>
-  </change-notes>
+    </change-notes>
 
-  <!-- Text to display as company information on Preferences/Settings | Plugin page -->
-  <vendor url="https://github.com/dev-assistant/skykoma-plugin-idea">Dev Assistant By HylStudio</vendor>
+    <!-- Text to display as company information on Preferences/Settings | Plugin page -->
+    <vendor url="https://github.com/dev-assistant/skykoma-plugin-idea">Dev Assistant By HylStudio</vendor>
 
-  <!-- <actions>
-    <action class="org.intellij.sdk.psi.PsiNavigationDemoAction" id="PsiNavigationDemo"
-            text="PSI Navigation Demo...">
-      <add-to-group group-id="ToolsMenu" anchor="last"/>
-    </action>
-  </actions> -->
-  <extensions defaultExtensionNs="com.intellij">
-    <defaultLiveTemplates file="/liveTemplates/skykomaLiveTemplates.xml"/>
-    <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenLogBeforeCurrentLineMacro"/>
-    <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenAllSetterByParamMacro"/>
-    <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenCreateTableSqlDDLMacro"/>
-    <psi.treeChangeListener implementation="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaPsiTreeChangeListener"/>
-    <backgroundPostStartupActivity implementation="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaProjectOpenForBackgroundTaskListener"/>
-    <requiredForSmartModeStartupActivity implementation="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaProjectOpenForSmartModeListener"/>
-    <projectService serviceInterface="cn.hylstudio.skykoma.plugin.idea.service.IProjectService"
-                    serviceImplementation="cn.hylstudio.skykoma.plugin.idea.service.impl.ProjectServiceImpl" />
-  </extensions>
-  <projectListeners>
-    <listener class="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaBulkFileListener" topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
-  </projectListeners>
+    <actions>
+        <action class="cn.hylstudio.skykoma.plugin.idea.action.HylTestAction" id="HylTestAction"
+                text="Hyl Test......">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+    <extensions defaultExtensionNs="com.intellij">
+        <defaultLiveTemplates file="/liveTemplates/skykomaLiveTemplates.xml"/>
+        <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenLogBeforeCurrentLineMacro"/>
+        <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenAllSetterByParamMacro"/>
+        <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenCreateTableSqlDDLMacro"/>
+        <psi.treeChangeListener
+                implementation="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaPsiTreeChangeListener"/>
+        <backgroundPostStartupActivity
+                implementation="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaProjectOpenForBackgroundTaskListener"/>
+        <requiredForSmartModeStartupActivity
+                implementation="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaProjectOpenForSmartModeListener"/>
+        <projectService serviceInterface="cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService"
+                        serviceImplementation="cn.hylstudio.skykoma.plugin.idea.service.impl.ProjectInfoServiceImpl"/>
+        <applicationService serviceInterface="cn.hylstudio.skykoma.plugin.idea.service.IHttpService"
+                        serviceImplementation="cn.hylstudio.skykoma.plugin.idea.service.impl.HttpServiceImpl"/>
+    </extensions>
+    <projectListeners>
+        <listener class="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaBulkFileListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    </projectListeners>
 </idea-plugin>
