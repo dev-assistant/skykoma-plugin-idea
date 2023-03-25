@@ -11,10 +11,7 @@ import java.util.List;
 public class ModuleDto {
     private Module module;
     private String name;
-    private List<FileDto> srcRoots;
-    private List<FileDto> testSrcRoots;
-    private List<FileDto> resRoots;
-    private List<FileDto> testResRoots;
+    private List<ModuleRootDto> roots;
 
     public ModuleDto(Module module) {
         this.module = module;

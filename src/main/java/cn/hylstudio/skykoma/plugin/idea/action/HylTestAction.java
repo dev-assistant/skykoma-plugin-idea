@@ -6,6 +6,8 @@ import cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -32,8 +34,12 @@ public class HylTestAction extends AnAction {
 //                    }
 //                    indicator.setFraction((double) i / 100); // 更新进度条
 //                }
-                IProjectInfoService projectService = project.getService(IProjectInfoService.class);
-                projectService.updateProjectInfo(true);
+
+                Application application = ApplicationManager.getApplication();
+                application.runReadAction(() -> {
+                    IProjectInfoService projectService = project.getService(IProjectInfoService.class);
+                    projectService.updateProjectInfo(true);
+                });
                 indicator.setFraction(1.0);
                 // 耗时操作完成
             }

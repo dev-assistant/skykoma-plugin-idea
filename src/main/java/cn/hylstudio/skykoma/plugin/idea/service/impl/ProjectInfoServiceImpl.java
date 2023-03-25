@@ -1,15 +1,14 @@
 package cn.hylstudio.skykoma.plugin.idea.service.impl;
 
-import cn.hylstudio.skykoma.plugin.idea.model.FileDto;
-import cn.hylstudio.skykoma.plugin.idea.model.ModuleDto;
-import cn.hylstudio.skykoma.plugin.idea.model.ProjectInfoDto;
-import cn.hylstudio.skykoma.plugin.idea.model.VCSEntityDto;
+import cn.hylstudio.skykoma.plugin.idea.model.*;
 import cn.hylstudio.skykoma.plugin.idea.model.payload.ProjectInfoQueryPayload;
 import cn.hylstudio.skykoma.plugin.idea.model.payload.UploadProjectPayload;
 import cn.hylstudio.skykoma.plugin.idea.model.result.BizCode;
 import cn.hylstudio.skykoma.plugin.idea.model.result.JsonResult;
 import cn.hylstudio.skykoma.plugin.idea.service.IHttpService;
 import cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.reflect.TypeToken;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -17,7 +16,12 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ModuleRootManager;
+import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.jps.model.java.JavaResourceRootType;
@@ -25,12 +29,13 @@ import org.jetbrains.jps.model.java.JavaSourceRootType;
 
 import java.io.File;
 import java.lang.reflect.Type;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
 import static cn.hylstudio.skykoma.plugin.idea.util.GsonUtils.GSON;
+import static cn.hylstudio.skykoma.plugin.idea.util.GsonUtils.PSI_GSON;
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.info;
 
 public class ProjectInfoServiceImpl implements IProjectInfoService {
@@ -77,18 +82,46 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         assert basePath != null;
         File rootFolder = new File(basePath);
         //vcs info
-        FileDto rootFolderDto = new FileDto(rootFolder, false);
+        FileDto rootFolderDto = parseRootFolder(rootFolder);
         projectInfoDto.setRootFolder(rootFolderDto);
         VCSEntityDto vcsEntityDto = parseVcsEntityDto(rootFolderDto);
         projectInfoDto.setVcsEntityDto(vcsEntityDto);
         //modules
         List<ModuleDto> moduleDtos = parseModulesDto(project);
         projectInfoDto.setModules(moduleDtos);
-        fillModuleRootsInfo();
+        //scanAllFiles
+        scanAllFiles();
         if (autoUpload) {
             uploadProjectInfo();
         }
         return projectInfoDto;
+    }
+
+
+    @NotNull
+    private static <T> BinaryOperator<List<T>> mergeList() {
+        return (v1, v2) -> {
+            List<T> objects = new ArrayList<>(v1.size() + v2.size());
+            objects.addAll(v1);
+            objects.addAll(v2);
+            return objects;
+        };
+    }
+
+    private FileDto parseRootFolder(File rootFolder) {
+        FileDto rootFolderDto = new FileDto(rootFolder, "");
+        VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();
+        Path rootPath = rootFolder.toPath();
+        VirtualFile rootVirtualFile = virtualFileManager.findFileByNioPath(rootPath);
+        if (rootVirtualFile == null) {
+            String msg = String.format("parseRootFolder error, virtualFile not found, pathStr = [%s]", rootPath);
+            LOGGER.warn(msg);
+            throw new RuntimeException(msg);
+        }
+        String rootFolderPath = rootFolderDto.getAbsolutePath();
+        List<FileDto> subFiles = getFileDtos(rootVirtualFile, rootFolderPath);
+        rootFolderDto.setSubFiles(subFiles);
+        return rootFolderDto;
     }
 
     @Override
@@ -109,11 +142,99 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
     }
 
     @NotNull
-    private static List<ModuleDto> parseModulesDto(Project project) {
+    private List<ModuleDto> parseModulesDto(Project project) {
+        FileDto rootFolder = projectInfoDto.getRootFolder();
+        String absolutePath = rootFolder.getAbsolutePath();
         ModuleManager moduleManager = ModuleManager.getInstance(project);
         List<Module> modules = Arrays.asList(moduleManager.getModules());
-        List<ModuleDto> moduleDtos = modules.stream().map(ModuleDto::new).collect(Collectors.toList());
+        List<ModuleDto> moduleDtos = modules.stream().map(v -> mapToModuleDto(absolutePath, v)).collect(Collectors.toList());
         return moduleDtos;
+    }
+
+    private static ModuleDto mapToModuleDto(String absolutePath, Module v) {
+        ModuleDto moduleDto = new ModuleDto(v);
+        ModuleRootManager manager = ModuleRootManager.getInstance(v);
+        List<FileDto> srcRoots = mapToModuleRoot(manager.getSourceRoots(JavaSourceRootType.SOURCE), absolutePath);
+        List<FileDto> testSrcRoots = mapToModuleRoot(manager.getSourceRoots(JavaSourceRootType.TEST_SOURCE), absolutePath);
+        List<FileDto> resourceRoots = mapToModuleRoot(manager.getSourceRoots(JavaResourceRootType.RESOURCE), absolutePath);
+        List<FileDto> testResourceRoots = mapToModuleRoot(manager.getSourceRoots(JavaResourceRootType.TEST_RESOURCE), absolutePath);
+        ArrayList<ModuleRootDto> roots = Lists.newArrayList(
+                new ModuleRootDto("src", srcRoots),
+                new ModuleRootDto("testSrc", testSrcRoots),
+                new ModuleRootDto("resources", resourceRoots),
+                new ModuleRootDto("testResources", testResourceRoots)
+        );
+        moduleDto.setRoots(roots);
+        return moduleDto;
+    }
+
+
+    private void scanAllFiles() {
+        Project project = projectInfoDto.getProject();
+        PsiManager psiManager = PsiManager.getInstance(project);
+        VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();
+        FileDto rootFolder = projectInfoDto.getRootFolder();
+        List<ModuleDto> modules = projectInfoDto.getModules();
+        Set<String> srcType = Sets.newHashSet("src", "testSrc");
+        Set<String> srcRelativePaths = modules.stream()
+                .map(ModuleDto::getRoots)
+                .reduce(mergeList()).orElse(Collections.emptyList())
+                .stream().filter(v -> srcType.contains(v.getType()))
+                .map(ModuleRootDto::getFolders)
+                .reduce(mergeList()).orElse(Collections.emptyList())
+                .stream().map(FileDto::getRelativePath).collect(Collectors.toSet());
+        scanFileRecursively(rootFolder, virtualFileManager, psiManager, srcRelativePaths);
+    }
+
+    private void scanFileRecursively(FileDto fileDto, VirtualFileManager virtualFileManager,
+                                     PsiManager psiManager, Set<String> srcRelativePaths) {
+        String type = fileDto.getType();
+        if (type.equals("folder")) {
+            fileDto.getSubFiles().forEach(v -> scanFileRecursively(v, virtualFileManager, psiManager, srcRelativePaths));
+        } else if (type.equals("file")) {
+            scanOneFile(fileDto, virtualFileManager, psiManager, srcRelativePaths);
+        } else {
+        }
+    }
+
+    private void scanOneFile(FileDto fileDto, VirtualFileManager virtualFileManager,
+                             PsiManager psiManager, Set<String> srcRelativePaths) {
+        File file = fileDto.getFile();
+        Path path = file.toPath();
+        LOGGER.info(String.format("scanOneFile, scanning file = [%s]", path));
+        //src files
+        if (!inSrcPaths(fileDto, srcRelativePaths)) {
+            LOGGER.warn(String.format("scanOneFile ignore non src folders, pathStr = [%s]", path));
+            return;
+        }
+        VirtualFile virtualFile = virtualFileManager.findFileByNioPath(path);
+        if (virtualFile == null) {
+            LOGGER.warn(String.format("scanOneFile error, virtualFile not found, pathStr = [%s]", path));
+            return;
+        }
+        String fileName = fileDto.getName();
+        if (!fileName.endsWith(".java")) {
+            LOGGER.warn(String.format("scanOneFile ignore non java, pathStr = [%s]", path));
+            return;
+        }
+        PsiFile psiFile = psiManager.findFile(virtualFile);
+        if (psiFile == null) {
+            LOGGER.warn(String.format("scanOneFile error, psiFile not found, pathStr = [%s]", path));
+            return;
+        }
+        PsiElement[] childrenElements = psiFile.getChildren();
+        String psiFileJson = PSI_GSON.toJson(childrenElements);
+        fileDto.setPsiFileJson(psiFileJson);
+    }
+
+    private boolean inSrcPaths(FileDto fileDto, Set<String> srcRelativePaths) {
+        String relativePath = fileDto.getRelativePath();
+        for (String srcPath : srcRelativePaths) {
+            if (relativePath.startsWith(srcPath)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @NotNull
@@ -127,30 +248,26 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         return vcsEntityDto;
     }
 
-    private void fillModuleRootsInfo() {
-        FileDto rootFolderDto = projectInfoDto.getRootFolder();
-        String rootFolderPath = rootFolderDto.getAbsolutePath();
-        List<ModuleDto> moduleDtos = projectInfoDto.getModules();
-        //module dirs
-        for (ModuleDto v : moduleDtos) {
-            Module module = v.getModule();
-            ModuleRootManager manager = ModuleRootManager.getInstance(module);
-            v.setSrcRoots(getFileDtos(rootFolderPath, manager.getSourceRoots(JavaSourceRootType.SOURCE)));
-            v.setTestSrcRoots(getFileDtos(rootFolderPath, manager.getSourceRoots(JavaSourceRootType.TEST_SOURCE)));
-            v.setResRoots(getFileDtos(rootFolderPath, manager.getSourceRoots(JavaResourceRootType.RESOURCE)));
-            v.setTestResRoots(getFileDtos(rootFolderPath, manager.getSourceRoots(JavaResourceRootType.TEST_RESOURCE)));
-        }
-    }
-
-    private static List<FileDto> getFileDtos(String rootFolderPath, List<VirtualFile> virtualFiles) {
-        return virtualFiles.stream()
-                .map(vf -> mapToDto(vf, rootFolderPath))
+    private List<FileDto> getFileDtos(VirtualFile virtualFile, String rootFolderPath) {
+        Project project = projectInfoDto.getProject();
+        ProjectLevelVcsManager vcsManager = ProjectLevelVcsManager.getInstance(project);
+        List<VirtualFile> virtualFiles = Arrays.asList(virtualFile.getChildren());
+        List<FileDto> subFiles = virtualFiles.stream()
+                .filter(v -> !v.getName().startsWith("."))//filter hide files
+                .filter(v -> !vcsManager.isIgnored(v))
+                .map(v -> {
+                    File file = new File(v.getPath());
+                    return new FileDto(file, rootFolderPath).fillSubFiles(rootFolderPath);
+                })
                 .collect(Collectors.toList());
+        return subFiles;
     }
 
-    private static FileDto mapToDto(VirtualFile v, String rootFolderPath) {
-        File file = new File(v.getPath());
-        return new FileDto(file, rootFolderPath);
+    private static List<FileDto> mapToModuleRoot(List<VirtualFile> virtualFiles, String absoluteRootPath) {
+        return virtualFiles.stream().map(v -> {
+            File file = new File(v.getPath());
+            return new FileDto(file, absoluteRootPath);
+        }).collect(Collectors.toList());
     }
 
     private String queryProjectKey(ProjectInfoDto projectInfoDto) {
@@ -170,7 +287,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
     }
 
     private static final String host = "http://localhost:8080";//TODO from config
-    private static final String UPLOAD_PROJECT_API = "%s/api/project/uploadProjectInfo";
+    private static final String UPDATE_PROJECT_API = "%s/api/project/updateProjectInfo";
     private static final String QUERY_PROJECT_API = "%s/api/project/queryProjectInfo";
 
     //TODO move to api service
@@ -180,7 +297,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         payload.setKey(project.getName());
         payload.setCreateIfNotExists(true);
         String requestJson = GSON.toJson(payload);
-        System.out.println(requestJson);
+//        System.out.println(requestJson);
         String url = String.format(QUERY_PROJECT_API, host);
         Type type = new TypeToken<JsonResult<ProjectInfoDto>>() {
         }.getType();
@@ -220,8 +337,8 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
 
     private ProjectInfoDto uploadProjectInfoToServer(UploadProjectPayload payload) {
         String requestJson = GSON.toJson(payload);
-        System.out.println(requestJson);
-        String url = String.format(UPLOAD_PROJECT_API, host);
+//        System.out.println(requestJson);
+        String url = String.format(UPDATE_PROJECT_API, host);
         Type type = new TypeToken<JsonResult<ProjectInfoDto>>() {
         }.getType();
         String responseJson = httpService.postJsonBody(url, requestJson);
