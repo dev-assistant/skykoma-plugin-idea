@@ -1,7 +1,9 @@
 package cn.hylstudio.skykoma.plugin.idea.service.impl;
 
+import cn.hylstudio.skykoma.plugin.idea.SkykomaConstants;
 import cn.hylstudio.skykoma.plugin.idea.model.*;
 import cn.hylstudio.skykoma.plugin.idea.model.payload.ProjectInfoQueryPayload;
+import com.intellij.ide.util.PropertiesComponent;
 import cn.hylstudio.skykoma.plugin.idea.model.payload.UploadProjectPayload;
 import cn.hylstudio.skykoma.plugin.idea.model.result.BizCode;
 import cn.hylstudio.skykoma.plugin.idea.model.result.JsonResult;
@@ -81,22 +83,21 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         String basePath = project.getBasePath();
         assert basePath != null;
         File rootFolder = new File(basePath);
-        //vcs info
+        // vcs info
         FileDto rootFolderDto = parseRootFolder(rootFolder);
         projectInfoDto.setRootFolder(rootFolderDto);
         VCSEntityDto vcsEntityDto = parseVcsEntityDto(rootFolderDto);
         projectInfoDto.setVcsEntityDto(vcsEntityDto);
-        //modules
+        // modules
         List<ModuleDto> moduleDtos = parseModulesDto(project);
         projectInfoDto.setModules(moduleDtos);
-        //scanAllFiles
+        // scanAllFiles
         scanAllFiles();
         if (autoUpload) {
             uploadProjectInfo();
         }
         return projectInfoDto;
     }
-
 
     @NotNull
     private static <T> BinaryOperator<List<T>> mergeList() {
@@ -130,7 +131,8 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         assert project != null;
         String projectKey = queryProjectKey(projectInfoDto);
         if (StringUtils.isEmpty(projectKey)) {
-            LOGGER.error(String.format("uploadProjectInfo error, projectKey empty, path = [%s]", project.getBasePath()));
+            LOGGER.error(
+                    String.format("uploadProjectInfo error, projectKey empty, path = [%s]", project.getBasePath()));
             return null;
         }
         String scanId = projectInfoDto.getScanId();
@@ -147,7 +149,8 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         String absolutePath = rootFolder.getAbsolutePath();
         ModuleManager moduleManager = ModuleManager.getInstance(project);
         List<Module> modules = Arrays.asList(moduleManager.getModules());
-        List<ModuleDto> moduleDtos = modules.stream().map(v -> mapToModuleDto(absolutePath, v)).collect(Collectors.toList());
+        List<ModuleDto> moduleDtos = modules.stream().map(v -> mapToModuleDto(absolutePath, v))
+                .collect(Collectors.toList());
         return moduleDtos;
     }
 
@@ -155,19 +158,20 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         ModuleDto moduleDto = new ModuleDto(v);
         ModuleRootManager manager = ModuleRootManager.getInstance(v);
         List<FileDto> srcRoots = mapToModuleRoot(manager.getSourceRoots(JavaSourceRootType.SOURCE), absolutePath);
-        List<FileDto> testSrcRoots = mapToModuleRoot(manager.getSourceRoots(JavaSourceRootType.TEST_SOURCE), absolutePath);
-        List<FileDto> resourceRoots = mapToModuleRoot(manager.getSourceRoots(JavaResourceRootType.RESOURCE), absolutePath);
-        List<FileDto> testResourceRoots = mapToModuleRoot(manager.getSourceRoots(JavaResourceRootType.TEST_RESOURCE), absolutePath);
+        List<FileDto> testSrcRoots = mapToModuleRoot(manager.getSourceRoots(JavaSourceRootType.TEST_SOURCE),
+                absolutePath);
+        List<FileDto> resourceRoots = mapToModuleRoot(manager.getSourceRoots(JavaResourceRootType.RESOURCE),
+                absolutePath);
+        List<FileDto> testResourceRoots = mapToModuleRoot(manager.getSourceRoots(JavaResourceRootType.TEST_RESOURCE),
+                absolutePath);
         ArrayList<ModuleRootDto> roots = Lists.newArrayList(
                 new ModuleRootDto("src", srcRoots),
                 new ModuleRootDto("testSrc", testSrcRoots),
                 new ModuleRootDto("resources", resourceRoots),
-                new ModuleRootDto("testResources", testResourceRoots)
-        );
+                new ModuleRootDto("testResources", testResourceRoots));
         moduleDto.setRoots(roots);
         return moduleDto;
     }
-
 
     private void scanAllFiles() {
         Project project = projectInfoDto.getProject();
@@ -187,10 +191,11 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
     }
 
     private void scanFileRecursively(FileDto fileDto, VirtualFileManager virtualFileManager,
-                                     PsiManager psiManager, Set<String> srcRelativePaths) {
+            PsiManager psiManager, Set<String> srcRelativePaths) {
         String type = fileDto.getType();
         if (type.equals("folder")) {
-            fileDto.getSubFiles().forEach(v -> scanFileRecursively(v, virtualFileManager, psiManager, srcRelativePaths));
+            fileDto.getSubFiles()
+                    .forEach(v -> scanFileRecursively(v, virtualFileManager, psiManager, srcRelativePaths));
         } else if (type.equals("file")) {
             scanOneFile(fileDto, virtualFileManager, psiManager, srcRelativePaths);
         } else {
@@ -198,11 +203,11 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
     }
 
     private void scanOneFile(FileDto fileDto, VirtualFileManager virtualFileManager,
-                             PsiManager psiManager, Set<String> srcRelativePaths) {
+            PsiManager psiManager, Set<String> srcRelativePaths) {
         File file = fileDto.getFile();
         Path path = file.toPath();
         LOGGER.info(String.format("scanOneFile, scanning file = [%s]", path));
-        //src files
+        // src files
         if (!inSrcPaths(fileDto, srcRelativePaths)) {
             LOGGER.warn(String.format("scanOneFile ignore non src folders, pathStr = [%s]", path));
             return;
@@ -253,7 +258,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         ProjectLevelVcsManager vcsManager = ProjectLevelVcsManager.getInstance(project);
         List<VirtualFile> virtualFiles = Arrays.asList(virtualFile.getChildren());
         List<FileDto> subFiles = virtualFiles.stream()
-                .filter(v -> !v.getName().startsWith("."))//filter hide files
+                .filter(v -> !v.getName().startsWith("."))// filter hide files
                 .filter(v -> !vcsManager.isIgnored(v))
                 .map(v -> {
                     File file = new File(v.getPath());
@@ -286,19 +291,23 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         return UUID.randomUUID().toString().replaceAll("-", "");
     }
 
-    private static final String host = "http://localhost:8080";//TODO from config
     private static final String UPDATE_PROJECT_API = "%s/api/project/updateProjectInfo";
     private static final String QUERY_PROJECT_API = "%s/api/project/queryProjectInfo";
 
-    //TODO move to api service
+    // TODO move to api service
     private ProjectInfoDto queryProjectKeyFromServer(ProjectInfoDto projectInfoDto) {
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        String apiHost = propertiesComponent.getValue(SkykomaConstants.DATA_SERVER_API_HOST);
+        if (StringUtils.isEmpty(apiHost)) {
+            return null;
+        }
         Project project = projectInfoDto.getProject();
         ProjectInfoQueryPayload payload = new ProjectInfoQueryPayload(projectInfoDto);
         payload.setKey(project.getName());
         payload.setCreateIfNotExists(true);
         String requestJson = GSON.toJson(payload);
-//        System.out.println(requestJson);
-        String url = String.format(QUERY_PROJECT_API, host);
+        // System.out.println(requestJson);
+        String url = String.format(QUERY_PROJECT_API, apiHost);
         Type type = new TypeToken<JsonResult<ProjectInfoDto>>() {
         }.getType();
         String responseJson = httpService.postJsonBody(url, requestJson);
@@ -311,25 +320,31 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         try {
             respone = GSON.fromJson(responseJson, type);
         } catch (Exception e) {
-            LOGGER.error(String.format("queryProjectKey failed, response format error1, responseJson = [%s]", responseJson), e);
+            LOGGER.error(
+                    String.format("queryProjectKey failed, response format error1, responseJson = [%s]", responseJson),
+                    e);
             return null;
         }
         if (respone == null) {
-            LOGGER.error(String.format("queryProjectKey failed, response format error2, responseJson = [%s]", responseJson));
+            LOGGER.error(
+                    String.format("queryProjectKey failed, response format error2, responseJson = [%s]", responseJson));
             return null;
         }
         String code = respone.getCode();
         if (code == null) {
-            LOGGER.error(String.format("queryProjectKey failed, response format error3, code missing, responseJson = [%s]", responseJson));
+            LOGGER.error(String.format(
+                    "queryProjectKey failed, response format error3, code missing, responseJson = [%s]", responseJson));
             return null;
         }
         if (!BizCode.SUCC.getCode().equals(code)) {
-            LOGGER.error(String.format("queryProjectKey failed, response format error4, code error, responseJson = [%s]", responseJson));
+            LOGGER.error(String.format(
+                    "queryProjectKey failed, response format error4, code error, responseJson = [%s]", responseJson));
             return null;
         }
         ProjectInfoDto data = respone.getData();
         if (data == null) {
-            LOGGER.error(String.format("queryProjectKey failed, response format error5, code missing, responseJson = [%s]", responseJson));
+            LOGGER.error(String.format(
+                    "queryProjectKey failed, response format error5, code missing, responseJson = [%s]", responseJson));
             return null;
         }
         return data;
@@ -337,8 +352,13 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
 
     private ProjectInfoDto uploadProjectInfoToServer(UploadProjectPayload payload) {
         String requestJson = GSON.toJson(payload);
-//        System.out.println(requestJson);
-        String url = String.format(UPDATE_PROJECT_API, host);
+        // System.out.println(requestJson);
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        String apiHost = propertiesComponent.getValue(SkykomaConstants.DATA_SERVER_API_HOST);
+        if (StringUtils.isEmpty(apiHost)) {
+            return null;
+        }
+        String url = String.format(UPDATE_PROJECT_API, apiHost);
         Type type = new TypeToken<JsonResult<ProjectInfoDto>>() {
         }.getType();
         String responseJson = httpService.postJsonBody(url, requestJson);
@@ -351,7 +371,8 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         try {
             respone = GSON.fromJson(responseJson, type);
         } catch (Exception e) {
-            LOGGER.error(String.format("upload projectInfo failed, response format error1, responseJson = [%s]", responseJson), e);
+            LOGGER.error(String.format("upload projectInfo failed, response format error1, responseJson = [%s]",
+                    responseJson), e);
             return null;
         }
         if (respone == null) {
@@ -360,7 +381,8 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         }
         String code = respone.getCode();
         if (code == null) {
-            LOGGER.error(String.format("upload projectInfo failed, response format error3, code missing, data = [%s]", responseJson));
+            LOGGER.error(String.format("upload projectInfo failed, response format error3, code missing, data = [%s]",
+                    responseJson));
             return null;
         }
         return respone.getData();

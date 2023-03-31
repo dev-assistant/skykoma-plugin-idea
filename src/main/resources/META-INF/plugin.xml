@@ -33,12 +33,13 @@
     <vendor url="https://github.com/dev-assistant/skykoma-plugin-idea">Dev Assistant By HylStudio</vendor>
 
     <actions>
-        <action class="cn.hylstudio.skykoma.plugin.idea.action.HylTestAction" id="HylTestAction"
-                text="Hyl Test......">
+        <action class="cn.hylstudio.skykoma.plugin.idea.action.UpdateProjectInfoAction" id="UpdateProjectInfoAction"
+                text="Update Project Info And Upload">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
     </actions>
     <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable instance="cn.hylstudio.skykoma.plugin.idea.config.IdeaPluginSettingsDialog" />
         <defaultLiveTemplates file="/liveTemplates/skykomaLiveTemplates.xml"/>
         <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenLogBeforeCurrentLineMacro"/>
         <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenAllSetterByParamMacro"/>

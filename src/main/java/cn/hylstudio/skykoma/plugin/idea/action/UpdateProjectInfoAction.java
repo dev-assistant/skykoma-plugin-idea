@@ -16,7 +16,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
-public class HylTestAction extends AnAction {
+public class UpdateProjectInfoAction extends AnAction {
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
