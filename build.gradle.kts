@@ -22,7 +22,7 @@ plugins {
 }
 
 group = "cn.hylstudio.skykoma.plugin.idea"
-version = "0.0.5"
+version = "0.0.6"
 
 repositories {
     mavenCentral()
@@ -37,6 +37,14 @@ java {
 intellij {
     version.set("2022.1.4")
     plugins.set(listOf("com.intellij.java"))
+}
+
+dependencies {
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
+//    implementation("com.google.code.gson:gson:2.10.1")
+//    implementation("com.google.guava:guava:31.1-jre")
+    implementation("org.projectlombok:lombok:1.18.22")
+    annotationProcessor("org.projectlombok:lombok:1.18.22")
 }
 
 tasks {

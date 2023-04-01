@@ -36,4 +36,8 @@ public class SkykomaConstants {
             SkykomaConstants.CONTROLLER_ANNOTATION_CLASS,
             SkykomaConstants.REST_CONTROLLER_ANNOTATION_CLASS
     );
+    
+    public static final String DATA_SERVER_API_HOST = "cn.hylstudio.skykoma.plugin.idea.config.data_server_api_host";
+    public static final String DATA_SERVER_API_KEY = "cn.hylstudio.skykoma.plugin.idea.config.data_server_api_key";
+    public static final String DATA_SERVER_ENABLED = "cn.hylstudio.skykoma.plugin.idea.config.data_server_enabled";
 }
