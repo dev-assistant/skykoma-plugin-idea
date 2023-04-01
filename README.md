@@ -1,7 +1,9 @@
 # Skykoma Plugin For IDEA
-尝试尽可能少的减少人工对IDE的重复操作
+尝试尽可能减少人工对IDE的重复操作
+- 1.模板代码自动生成
+- 2.获取当前项目语义并上报
 
-## skykoma-plugin-idea
+## 功能说明
 ### 1.模板代码自动生成
 模板代码生成主要依赖于LiveTemplate实现，分为静态生成和动态生成，静态生成是上下文无关的，动态生成可感知代码上下文。
 
@@ -144,5 +146,340 @@ public void someMethod(SomeOtherClass v){
 // ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 ```
 //TODO
-
 Service：增强自带的创建类过程，根据类名猜测正确的包名，一键生成带注解的Service类和接口并实现对应接口满足主流项目的风格要求，减少人工操作。
+
+### 2.获取当前项目语义并上报
+##### 2.1.项目信息
+根据当前项目自动识别文件树，并追踪文件变化
+- 文件树
+- 源码、测试源码、资源、测试资源识别
+```json
+{
+    "scanId": "340bc77b232a4fa599b819743725e160",
+    "projectInfoDto": {
+        "key": "realworld-mdd",
+        "name": "realworld-mdd",
+        "vcsEntityDto": {
+            "vcsType": "git",
+            "name": "realworld-mdd",
+            "path": "D:\\code\\realworld-mdd"
+        },
+        "rootFolder": {
+            "name": "realworld-mdd",
+            "type": "folder",
+            "relativePath": "",
+            "absolutePath": "D:\\code\\realworld-mdd",
+            "subFiles": [
+                //omit mid dirs
+                {
+                    "name": "config",
+                    "type": "folder",
+                    "relativePath": "src\\main\\java\\cn\\hylstudio\\mdse\\demo\\realworld\\config",
+                    "absolutePath": "D:\\code\\realworld-mdd\\src\\main\\java\\cn\\hylstudio\\mdse\\demo\\realworld\\config",
+                    "subFiles": [
+                        {
+                            "name": "interceptor",
+                            "type": "folder",
+                            "relativePath": "src\\main\\java\\cn\\hylstudio\\mdse\\demo\\realworld\\config\\interceptor",
+                            "absolutePath": "D:\\code\\realworld-mdd\\src\\main\\java\\cn\\hylstudio\\mdse\\demo\\realworld\\config\\interceptor",
+                            "subFiles": [
+                                {
+                                    "name": "AuthInterceptor.java",
+                                    "type": "file",
+                                    "relativePath": "src\\main\\java\\cn\\hylstudio\\mdse\\demo\\realworld\\config\\interceptor\\AuthInterceptor.java",
+                                    "absolutePath": "D:\\code\\realworld-mdd\\src\\main\\java\\cn\\hylstudio\\mdse\\demo\\realworld\\config\\interceptor\\AuthInterceptor.java",
+                                    "psiFileJson": "jsonContent .......",
+                                    "subFiles": []
+                                },
+                                {
+                                    "name": "PublicInterceptor.java",
+                                    "type": "file",
+                                    "relativePath": "src\\main\\java\\cn\\hylstudio\\mdse\\demo\\realworld\\config\\interceptor\\PublicInterceptor.java",
+                                    "absolutePath": "D:\\code\\realworld-mdd\\src\\main\\java\\cn\\hylstudio\\mdse\\demo\\realworld\\config\\interceptor\\PublicInterceptor.java",
+                                    "psiFileJson": "jsonContent .......",
+                                    "subFiles": []
+                                }
+                            ]
+                        },
+                        {
+                            "name": "WebConfig.java",
+                            "type": "file",
+                            "relativePath": "src\\main\\java\\cn\\hylstudio\\mdse\\demo\\realworld\\config\\WebConfig.java",
+                            "absolutePath": "D:\\code\\realworld-mdd\\src\\main\\java\\cn\\hylstudio\\mdse\\demo\\realworld\\config\\WebConfig.java",
+                            "psiFileJson": "jsonContent .......",
+                            "subFiles": []
+                        }
+                    ]
+                }
+            ]
+        },
+        "modules": [
+            {
+                "name": "realworld",
+                "roots": [
+                    {
+                        "type": "src",
+                        "folders": [
+                            {
+                                "name": "java",
+                                "type": "folder",
+                                "relativePath": "src-gen\\main\\java",
+                                "absolutePath": "D:\\code\\realworld-mdd\\src-gen\\main\\java",
+                                "subFiles": []
+                            },
+                            {
+                                "name": "java",
+                                "type": "folder",
+                                "relativePath": "src\\main\\java",
+                                "absolutePath": "D:\\code\\realworld-mdd\\src\\main\\java",
+                                "subFiles": []
+                            }
+                        ]
+                    },
+                    {
+                        "type": "testSrc",
+                        "folders": [
+                            {
+                                "name": "java",
+                                "type": "folder",
+                                "relativePath": "src\\test\\java",
+                                "absolutePath": "D:\\code\\realworld-mdd\\src\\test\\java",
+                                "subFiles": []
+                            }
+                        ]
+                    },
+                    {
+                        "type": "resources",
+                        "folders": [
+                            {
+                                "name": "resources",
+                                "type": "folder",
+                                "relativePath": "src\\main\\resources",
+                                "absolutePath": "D:\\code\\realworld-mdd\\src\\main\\resources",
+                                "subFiles": []
+                            }
+                        ]
+                    },
+                    {
+                        "type": "testResources",
+                        "folders": [ //omit
+                        ]
+                    }
+                ]
+            }
+        ],
+        "scanId": "340bc77b232a4fa599b819743725e160",
+        "lastScanTs": 1680358223404
+    }
+}
+```
+
+##### 2.2.语法信息
+根据PsiFile获取PsiElement的树状结构，如：
+```json
+{
+    "originText": "package cn.hylstudio.mdse.demo.realworld.controller.user;",
+    "startOffset": 0,
+    "endOffset": 57,
+    "className": "com.intellij.psi.impl.source.tree.java.PsiPackageStatementImpl",
+    "childElements": [
+        {
+            "originText": "package",
+            "startOffset": 0,
+            "endOffset": 7,
+            "className": "com.intellij.psi.impl.source.tree.java.PsiKeywordImpl",
+            "childElements": []
+        },
+        {
+            "originText": " ",
+            "startOffset": 7,
+            "endOffset": 8,
+            "className": "com.intellij.psi.impl.source.tree.PsiWhiteSpaceImpl",
+            "childElements": []
+        },
+        {
+            "originText": "cn.hylstudio.mdse.demo.realworld.controller.user",
+            "startOffset": 8,
+            "endOffset": 56,
+            "className": "com.intellij.psi.impl.source.PsiJavaCodeReferenceElementImpl",
+            "childElements": [ omit ]
+        },
+        {
+            "originText": ";",
+            "startOffset": 56,
+            "endOffset": 57,
+            "className": "com.intellij.psi.impl.source.tree.java.PsiJavaTokenImpl",
+            "childElements": []
+        }
+    ]
+}
+```
+
+##### 2.3.语义信息
+根据PsiElement不同的节点类型，会附加不同的语义信息。包括：
+- 类之间的继承关系
+- 接口之间继承关系
+- 类和接口的实现关系
+```json
+{
+    "originText": "omit",
+    "startOffset": 859,
+    "endOffset": 1564,
+    "className": "com.intellij.psi.impl.source.PsiClassImpl",
+    "childElements": [omit],
+    "qualifiedName": "cn.hylstudio.mdse.demo.realworld.controller.user.UserController",
+    "isInterface": false,
+    "superTypeCanonicalTexts": [
+        "cn.hylstudio.mdse.demo.realworld.controller.BaseController"
+    ],
+    "implementsList": [],
+    "implementsCanonicalTextsList": [],
+    "implementsSuperTypeCanonicalTextsList": [],
+    "superClass": {
+        "originText": "",
+        "startOffset": 0,
+        "endOffset": 0,
+        "className": "com.intellij.psi.impl.source.PsiClassImpl",
+        "childElements": [],
+        "qualifiedName": "cn.hylstudio.mdse.demo.realworld.controller.BaseController",
+        "isInterface": false,
+        "superTypeCanonicalTexts": [
+            "java.lang.Object"
+        ],
+        "implementsList": [],
+        "implementsCanonicalTextsList": [],
+        "implementsSuperTypeCanonicalTextsList": [],
+        "superClass": {
+            "originText": "",
+            "startOffset": 0,
+            "endOffset": 0,
+            "className": "com.intellij.psi.impl.compiled.ClsClassImpl",
+            "childElements": [],
+            "qualifiedName": "java.lang.Object",
+            "isInterface": false,
+            "superTypeCanonicalTexts": [],
+            "implementsList": [],
+            "implementsCanonicalTextsList": [],
+            "implementsSuperTypeCanonicalTextsList": [],
+            "superClass": {}
+        }
+    }
+}
+```
+
+```json
+{
+    "originText": "public interface RealWorldUserRepo extends JpaRepository<RealWorldUser, Integer> {\n    RealWorldUser findByEmailAndPassword(String loginEmail, String passwordHash);\n}",
+    "startOffset": 185,
+    "endOffset": 351,
+    "className": "com.intellij.psi.impl.source.PsiClassImpl",
+    "childElements": [omit        ],
+    "qualifiedName": "cn.hylstudio.mdse.demo.realworld.repo.mysql.RealWorldUserRepo",
+    "isInterface": true,
+    "superTypeCanonicalTexts": [
+        "org.springframework.data.jpa.repository.JpaRepository<cn.hylstudio.mdse.demo.realworld.entity.mysql.RealWorldUser,java.lang.Integer>"
+    ],
+    "extendsClassList": [
+        {
+            "originText": "",
+            "startOffset": 0,
+            "endOffset": 0,
+            "className": "com.intellij.psi.impl.compiled.ClsClassImpl",
+            "childElements": [],
+            "qualifiedName": "org.springframework.data.jpa.repository.JpaRepository",
+            "isInterface": true,
+            "superTypeCanonicalTexts": [
+                "org.springframework.data.repository.PagingAndSortingRepository<T,ID>",
+                "org.springframework.data.repository.query.QueryByExampleExecutor<T>"
+            ],
+            "extendsClassList": [
+                {
+                    "originText": "",
+                    "startOffset": 0,
+                    "endOffset": 0,
+                    "className": "com.intellij.psi.impl.compiled.ClsClassImpl",
+                    "childElements": [],
+                    "qualifiedName": "org.springframework.data.repository.PagingAndSortingRepository",
+                    "isInterface": true,
+                    "superTypeCanonicalTexts": [
+                        "org.springframework.data.repository.CrudRepository<T,ID>"
+                    ],
+                    "extendsClassList": [
+                        {
+                            "originText": "",
+                            "startOffset": 0,
+                            "endOffset": 0,
+                            "className": "com.intellij.psi.impl.compiled.ClsClassImpl",
+                            "childElements": [],
+                            "qualifiedName": "org.springframework.data.repository.CrudRepository",
+                            "isInterface": true,
+                            "superTypeCanonicalTexts": [
+                                "org.springframework.data.repository.Repository<T,ID>"
+                            ],
+                            "extendsClassList": [
+                                {
+                                    "originText": "",
+                                    "startOffset": 0,
+                                    "endOffset": 0,
+                                    "className": "com.intellij.psi.impl.compiled.ClsClassImpl",
+                                    "childElements": [],
+                                    "qualifiedName": "org.springframework.data.repository.Repository",
+                                    "isInterface": true,
+                                    "superTypeCanonicalTexts": [
+                                        "java.lang.Object"
+                                    ],
+                                    "extendsClassList": [],
+                                    "extendsCanonicalTextsList": [],
+                                    "extendsSuperTypeCanonicalTextsList": []
+                                }
+                            ],
+                            "extendsCanonicalTextsList": [
+                                "org.springframework.data.repository.Repository<T,ID>"
+                            ],
+                            "extendsSuperTypeCanonicalTextsList": [
+                                "java.lang.Object"
+                            ]
+                        }
+                    ],
+                    "extendsCanonicalTextsList": [
+                        "org.springframework.data.repository.CrudRepository<T,ID>"
+                    ],
+                    "extendsSuperTypeCanonicalTextsList": [
+                        "org.springframework.data.repository.Repository<T,ID>"
+                    ]
+                },
+                {
+                    "originText": "",
+                    "startOffset": 0,
+                    "endOffset": 0,
+                    "className": "com.intellij.psi.impl.compiled.ClsClassImpl",
+                    "childElements": [],
+                    "qualifiedName": "org.springframework.data.repository.query.QueryByExampleExecutor",
+                    "isInterface": true,
+                    "superTypeCanonicalTexts": [
+                        "java.lang.Object"
+                    ],
+                    "extendsClassList": [],
+                    "extendsCanonicalTextsList": [],
+                    "extendsSuperTypeCanonicalTextsList": []
+                }
+            ],
+            "extendsCanonicalTextsList": [
+                "org.springframework.data.repository.PagingAndSortingRepository<T,ID>",
+                "org.springframework.data.repository.query.QueryByExampleExecutor<T>"
+            ],
+            "extendsSuperTypeCanonicalTextsList": [
+                "org.springframework.data.repository.CrudRepository<T,ID>",
+                "java.lang.Object"
+            ]
+        }
+    ],
+    "extendsCanonicalTextsList": [
+        "org.springframework.data.jpa.repository.JpaRepository<cn.hylstudio.mdse.demo.realworld.entity.mysql.RealWorldUser,java.lang.Integer>"
+    ],
+    "extendsSuperTypeCanonicalTextsList": [
+        "org.springframework.data.repository.PagingAndSortingRepository<cn.hylstudio.mdse.demo.realworld.entity.mysql.RealWorldUser,java.lang.Integer>",
+        "org.springframework.data.repository.query.QueryByExampleExecutor<cn.hylstudio.mdse.demo.realworld.entity.mysql.RealWorldUser>"
+    ]
+}
+```
