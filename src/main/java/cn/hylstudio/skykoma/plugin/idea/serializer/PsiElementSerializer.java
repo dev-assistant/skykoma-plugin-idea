@@ -40,9 +40,13 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
         jsonObject.add("childElements", childElementsJsonArray);
         //序列化特定的节点
         if (psiElement instanceof PsiClass) {
+            jsonObject.addProperty("psiType", "Class");
             processPsiClass(currentFile, (PsiClass) psiElement, jsonSerializationContext, jsonObject);
         } else if (psiElement instanceof PsiAnnotation) {
+            jsonObject.addProperty("psiType", "Annotation");
             processPsiAnnotation(currentFile, (PsiAnnotation) psiElement, jsonSerializationContext, jsonObject);
+        }else{
+            jsonObject.addProperty("psiType", "unknown");
         }
         return jsonObject;
 
@@ -79,10 +83,14 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
     private void processPsiClass(PsiFile currentFile, PsiClass psiClass, JsonSerializationContext jsonSerializationContext, JsonObject jsonObject) {
         String qualifiedName = psiClass.getQualifiedName();
         if (StringUtils.isEmpty(qualifiedName)) {
+            jsonObject.addProperty("qualifiedName", "unknown");
             return;
         }
         jsonObject.addProperty("qualifiedName", qualifiedName);
         boolean isInterface = psiClass.isInterface();
+        PsiElementFactory factory = JavaPsiFacade.getInstance(psiClass.getProject()).getElementFactory();
+        PsiType psiType = factory.createType(psiClass);
+        jsonObject.addProperty("canonicalText", psiType.getCanonicalText());
         jsonObject.addProperty("isInterface", isInterface);
         PsiClassType[] superTypes = psiClass.getSuperTypes();
         JsonArray superTypeCanonicalTextsArr = new JsonArray();
