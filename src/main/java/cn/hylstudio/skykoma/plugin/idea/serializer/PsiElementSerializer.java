@@ -8,7 +8,9 @@ import com.intellij.psi.*;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class PsiElementSerializer extends BasePsiSerializer implements JsonSerializer<PsiElement> {
     private static final Logger LOGGER = Logger.getInstance(PsiElementSerializer.class);
@@ -45,12 +47,13 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
         } else if (psiElement instanceof PsiAnnotation) {
             jsonObject.addProperty("psiType", "Annotation");
             processPsiAnnotation(currentFile, (PsiAnnotation) psiElement, jsonSerializationContext, jsonObject);
-        }else{
+        } else {
             jsonObject.addProperty("psiType", "unknown");
         }
         return jsonObject;
 
     }
+
     private void processPsiAnnotation(PsiFile currentFile, PsiAnnotation annotation, JsonSerializationContext jsonSerializationContext, JsonObject jsonObject) {
         String qualifiedName = annotation.getQualifiedName();
         jsonObject.addProperty("qualifiedName", qualifiedName);
@@ -88,17 +91,26 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
         }
         jsonObject.addProperty("qualifiedName", qualifiedName);
         boolean isInterface = psiClass.isInterface();
-        PsiElementFactory factory = JavaPsiFacade.getInstance(psiClass.getProject()).getElementFactory();
-        PsiType psiType = factory.createType(psiClass);
-        jsonObject.addProperty("canonicalText", psiType.getCanonicalText());
-        jsonObject.addProperty("isInterface", isInterface);
-        PsiClassType[] superTypes = psiClass.getSuperTypes();
-        JsonArray superTypeCanonicalTextsArr = new JsonArray();
-        for (PsiClassType superType : superTypes) {
-            String canonicalText = superType.getCanonicalText();
-            superTypeCanonicalTextsArr.add(canonicalText);
+        PsiTypeParameter[] typeParameters = psiClass.getTypeParameters();
+        String canonicalText = qualifiedName;
+        if (typeParameters.length != 0) {
+            String genericType = Arrays.stream(typeParameters).map(PsiElement::getText).collect(Collectors.joining(",", "<", ">"));
+            canonicalText = qualifiedName + genericType;
         }
-        jsonObject.add("superTypeCanonicalTexts", superTypeCanonicalTextsArr);
+        jsonObject.addProperty("canonicalText", canonicalText);
+        jsonObject.addProperty("isInterface", isInterface);
+        JsonArray superTypeClassListArr = new JsonArray();
+        JsonArray superTypeCanonicalTextsArr = new JsonArray();
+        JsonArray superTypeSuperTypeCanonicalTextsArr = new JsonArray();
+        PsiClassType[] superTypes = psiClass.getSuperTypes();
+        extractInterfaceInfo(currentFile, jsonSerializationContext,
+                superTypeClassListArr,
+                superTypeCanonicalTextsArr,
+                superTypeSuperTypeCanonicalTextsArr,
+                superTypes);
+        jsonObject.add("superTypeClassList", superTypeClassListArr);
+        jsonObject.add("superTypeCanonicalTextsList", superTypeCanonicalTextsArr);
+        jsonObject.add("superTypeSuperTypeCanonicalTextsList", superTypeSuperTypeCanonicalTextsArr);
         if (isInterface) {
             PsiClassType[] extendsListTypes = psiClass.getExtendsListTypes();
             // 获取继承的接口类型信息
