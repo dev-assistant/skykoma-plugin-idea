@@ -5,6 +5,7 @@ import com.google.gson.*;
 import com.intellij.lang.jvm.annotation.JvmAnnotationAttribute;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.*;
+import com.intellij.psi.util.PsiTypesUtil;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Type;
@@ -47,11 +48,86 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
         } else if (psiElement instanceof PsiAnnotation) {
             jsonObject.addProperty("psiType", "Annotation");
             processPsiAnnotation(currentFile, (PsiAnnotation) psiElement, jsonSerializationContext, jsonObject);
+        } else if (psiElement instanceof PsiField) {
+            jsonObject.addProperty("psiType", "Field");
+            processPsiField(currentFile, (PsiField) psiElement, jsonSerializationContext, jsonObject);
+        } else if (psiElement instanceof PsiIdentifier) {
+            jsonObject.addProperty("psiType", "Identifier");
+            processPsiIdentifier(currentFile, (PsiIdentifier) psiElement, jsonSerializationContext, jsonObject);
+        } else if (psiElement instanceof PsiExpression) {
+            jsonObject.addProperty("psiType", "Expression");
+            processPsiExpression(currentFile, (PsiExpression) psiElement, jsonSerializationContext, jsonObject);
         } else {
             jsonObject.addProperty("psiType", "unknown");
         }
         return jsonObject;
 
+    }
+
+    private void processPsiClass(PsiFile currentFile, PsiClass psiClass, JsonSerializationContext jsonSerializationContext, JsonObject jsonObject) {
+        String qualifiedName = psiClass.getQualifiedName();
+        if (StringUtils.isEmpty(qualifiedName)) {
+            jsonObject.addProperty("qualifiedName", "unknown");
+            return;
+        }
+        jsonObject.addProperty("qualifiedName", qualifiedName);
+        boolean isInterface = psiClass.isInterface();
+        PsiTypeParameter[] typeParameters = psiClass.getTypeParameters();
+        String canonicalText = qualifiedName;
+        if (typeParameters.length != 0) {
+            String genericType = Arrays.stream(typeParameters).map(PsiElement::getText).collect(Collectors.joining(",", "<", ">"));
+            canonicalText = qualifiedName + genericType;
+        }
+        jsonObject.addProperty("canonicalText", canonicalText);
+        jsonObject.addProperty("isInterface", isInterface);
+        JsonArray superTypeClassListArr = new JsonArray();
+        JsonArray superTypeCanonicalTextsArr = new JsonArray();
+        JsonArray superTypeSuperTypeCanonicalTextsArr = new JsonArray();
+        PsiClassType[] superTypes = psiClass.getSuperTypes();
+        extractTypesInfo(currentFile, jsonSerializationContext,
+                superTypeClassListArr,
+                superTypeCanonicalTextsArr,
+                superTypeSuperTypeCanonicalTextsArr,
+                superTypes);
+        jsonObject.add("superTypeClassList", superTypeClassListArr);
+        jsonObject.add("superTypeCanonicalTextsList", superTypeCanonicalTextsArr);
+        jsonObject.add("superTypeSuperTypeCanonicalTextsList", superTypeSuperTypeCanonicalTextsArr);
+        if (isInterface) {
+            PsiClassType[] extendsListTypes = psiClass.getExtendsListTypes();
+            // 获取继承的接口类型信息
+            JsonArray extendsClassListArr = new JsonArray();
+            JsonArray extendsCanonicalTextsListArr = new JsonArray();
+            JsonArray extendsSuperTypeCanonicalTextsListArr = new JsonArray();
+            extractTypesInfo(currentFile, jsonSerializationContext,
+                    extendsClassListArr,
+                    extendsCanonicalTextsListArr,
+                    extendsSuperTypeCanonicalTextsListArr,
+                    extendsListTypes);
+            jsonObject.add("extendsClassList", extendsClassListArr);
+            jsonObject.add("extendsCanonicalTextsList", extendsCanonicalTextsListArr);
+            jsonObject.add("extendsSuperTypeCanonicalTextsList", extendsSuperTypeCanonicalTextsListArr);
+        } else {
+            // 获取父类
+            JsonObject superClassObj = new JsonObject();
+            PsiClass superClass = psiClass.getSuperClass();
+            if (superClass != null) {
+                superClassObj = serializeRecursively(currentFile, superClass, jsonSerializationContext);
+            }
+            jsonObject.add("superClass", superClassObj);
+            // 获取实现的接口类型
+            PsiClassType[] implementedInterfaces = psiClass.getImplementsListTypes();
+            JsonArray implementsListArr = new JsonArray();
+            JsonArray implementsCanonicalTextsListArr = new JsonArray();
+            JsonArray implementsSuperTypeCanonicalTextsListArr = new JsonArray();
+            extractTypesInfo(currentFile, jsonSerializationContext,
+                    implementsListArr,
+                    implementsCanonicalTextsListArr,
+                    implementsSuperTypeCanonicalTextsListArr,
+                    implementedInterfaces);
+            jsonObject.add("implementsList", implementsListArr);
+            jsonObject.add("implementsCanonicalTextsList", implementsCanonicalTextsListArr);
+            jsonObject.add("implementsSuperTypeCanonicalTextsList", implementsSuperTypeCanonicalTextsListArr);
+        }
     }
 
     private void processPsiAnnotation(PsiFile currentFile, PsiAnnotation annotation, JsonSerializationContext jsonSerializationContext, JsonObject jsonObject) {
@@ -83,78 +159,62 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
         jsonObject.add("annotationClass", annotationClassObj);
     }
 
-    private void processPsiClass(PsiFile currentFile, PsiClass psiClass, JsonSerializationContext jsonSerializationContext, JsonObject jsonObject) {
-        String qualifiedName = psiClass.getQualifiedName();
-        if (StringUtils.isEmpty(qualifiedName)) {
-            jsonObject.addProperty("qualifiedName", "unknown");
-            return;
-        }
-        jsonObject.addProperty("qualifiedName", qualifiedName);
-        boolean isInterface = psiClass.isInterface();
-        PsiTypeParameter[] typeParameters = psiClass.getTypeParameters();
-        String canonicalText = qualifiedName;
-        if (typeParameters.length != 0) {
-            String genericType = Arrays.stream(typeParameters).map(PsiElement::getText).collect(Collectors.joining(",", "<", ">"));
-            canonicalText = qualifiedName + genericType;
-        }
-        jsonObject.addProperty("canonicalText", canonicalText);
-        jsonObject.addProperty("isInterface", isInterface);
-        JsonArray superTypeClassListArr = new JsonArray();
-        JsonArray superTypeCanonicalTextsArr = new JsonArray();
-        JsonArray superTypeSuperTypeCanonicalTextsArr = new JsonArray();
-        PsiClassType[] superTypes = psiClass.getSuperTypes();
-        extractInterfaceInfo(currentFile, jsonSerializationContext,
-                superTypeClassListArr,
-                superTypeCanonicalTextsArr,
-                superTypeSuperTypeCanonicalTextsArr,
-                superTypes);
-        jsonObject.add("superTypeClassList", superTypeClassListArr);
-        jsonObject.add("superTypeCanonicalTextsList", superTypeCanonicalTextsArr);
-        jsonObject.add("superTypeSuperTypeCanonicalTextsList", superTypeSuperTypeCanonicalTextsArr);
-        if (isInterface) {
-            PsiClassType[] extendsListTypes = psiClass.getExtendsListTypes();
-            // 获取继承的接口类型信息
-            JsonArray extendsClassListArr = new JsonArray();
-            JsonArray extendsCanonicalTextsListArr = new JsonArray();
-            JsonArray extendsSuperTypeCanonicalTextsListArr = new JsonArray();
-            extractInterfaceInfo(currentFile, jsonSerializationContext,
-                    extendsClassListArr,
-                    extendsCanonicalTextsListArr,
-                    extendsSuperTypeCanonicalTextsListArr,
-                    extendsListTypes);
-            jsonObject.add("extendsClassList", extendsClassListArr);
-            jsonObject.add("extendsCanonicalTextsList", extendsCanonicalTextsListArr);
-            jsonObject.add("extendsSuperTypeCanonicalTextsList", extendsSuperTypeCanonicalTextsListArr);
-        } else {
-            // 获取父类
-            JsonObject superClassObj = new JsonObject();
-            PsiClass superClass = psiClass.getSuperClass();
-            if (superClass != null) {
-                superClassObj = serializeRecursively(currentFile, superClass, jsonSerializationContext);
-            }
-            jsonObject.add("superClass", superClassObj);
-            // 获取实现的接口类型
-            PsiClassType[] implementedInterfaces = psiClass.getImplementsListTypes();
-            JsonArray implementsListArr = new JsonArray();
-            JsonArray implementsCanonicalTextsListArr = new JsonArray();
-            JsonArray implementsSuperTypeCanonicalTextsListArr = new JsonArray();
-            extractInterfaceInfo(currentFile, jsonSerializationContext,
-                    implementsListArr,
-                    implementsCanonicalTextsListArr,
-                    implementsSuperTypeCanonicalTextsListArr,
-                    implementedInterfaces);
-            jsonObject.add("implementsList", implementsListArr);
-            jsonObject.add("implementsCanonicalTextsList", implementsCanonicalTextsListArr);
-            jsonObject.add("implementsSuperTypeCanonicalTextsList", implementsSuperTypeCanonicalTextsListArr);
-        }
+    private void processPsiField(PsiFile currentFile, PsiField psiField, JsonSerializationContext jsonSerializationContext, JsonObject jsonObject) {
+        processPsiVariable(currentFile, psiField, jsonSerializationContext, jsonObject);
     }
 
-    private void extractInterfaceInfo(PsiFile currentFile,
-                                      JsonSerializationContext jsonSerializationContext,
-                                      JsonArray typeListArr,
-                                      JsonArray typeCanonicalTextsListArr,
-                                      JsonArray superTypeCanonicalTextsListArr,
-                                      PsiClassType[] types) {
+    private void processPsiVariable(PsiFile currentFile, PsiVariable psiVariable, JsonSerializationContext jsonSerializationContext, JsonObject jsonObject) {
+        //type info
+        PsiType type = psiVariable.getType();
+        String canonicalText = type.getCanonicalText();
+        jsonObject.addProperty("canonicalText", canonicalText);
+        JsonObject classInfo = new JsonObject();
+        PsiClass fieldClassType = PsiTypesUtil.getPsiClass(type);
+        boolean isClass = fieldClassType != null;
+        jsonObject.addProperty("isClass", isClass);
+        if (isClass) {
+            classInfo = serializeRecursively(currentFile, fieldClassType, jsonSerializationContext);
+        }
+        jsonObject.add("classInfo", classInfo);
+        //identifier info
+        PsiIdentifier nameIdentifier = psiVariable.getNameIdentifier();
+        JsonObject nameIdentifierObj = serializeRecursively(currentFile, nameIdentifier, jsonSerializationContext);
+        jsonObject.add("nameIdentifier", nameIdentifierObj);
+        jsonObject.addProperty("variableName", psiVariable.getName());
+        //initializer info
+        boolean hasInitializer = psiVariable.hasInitializer();
+        jsonObject.addProperty("hasInitializer", hasInitializer);
+        JsonObject initializerObj = new JsonObject();
+        if (hasInitializer) {
+            PsiExpression initializer = psiVariable.getInitializer();
+            initializerObj = serializeRecursively(currentFile, initializer, jsonSerializationContext);
+        }
+        jsonObject.add("initializer", initializerObj);
+    }
+
+    private void processPsiIdentifier(PsiFile currentFile, PsiIdentifier psiIdentifier, JsonSerializationContext jsonSerializationContext, JsonObject jsonObject) {
+        PsiElement context = psiIdentifier.getContext();
+        boolean hasContext = context != null;
+        jsonObject.addProperty("hasContext", hasContext);
+        int contextHash = 0;
+        if (hasContext) {
+            contextHash = context.hashCode();
+        }
+        jsonObject.addProperty("contextHash", contextHash);
+        int identifierHash = psiIdentifier.hashCode();
+        jsonObject.addProperty("identifierHash", identifierHash);
+    }
+
+    private void processPsiExpression(PsiFile currentFile, PsiExpression psiElement, JsonSerializationContext jsonSerializationContext, JsonObject jsonObject) {
+
+    }
+
+    private void extractTypesInfo(PsiFile currentFile,
+                                  JsonSerializationContext jsonSerializationContext,
+                                  JsonArray typeListArr,
+                                  JsonArray typeCanonicalTextsListArr,
+                                  JsonArray superTypeCanonicalTextsListArr,
+                                  PsiClassType[] types) {
         for (PsiClassType type : types) {
             String canonicalText = type.getCanonicalText();
             typeCanonicalTextsListArr.add(canonicalText);
