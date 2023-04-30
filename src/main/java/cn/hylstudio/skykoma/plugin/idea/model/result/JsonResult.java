@@ -17,4 +17,8 @@ public class JsonResult<T> {
         this.msg = msg;
         this.data = data;
     }
+    
+    public static <T> JsonResult<T> succResult(String msg, T data) {
+        return new JsonResult<>("S00000", msg, data);
+    }
 }

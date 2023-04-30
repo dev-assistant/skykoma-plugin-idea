@@ -22,6 +22,7 @@
     <change-notes>
         <![CDATA[
       <ul>
+        <li><b>0.0.8</b>test jupyter java 17</li>
         <li><b>0.0.5</b>修复autowire不自动import的bug</li>
         <li><b>0.0.4</b>新增常用动态代码模板</li>
         <li><b>0.0.3</b>新增常用静态代码模板</li>
@@ -37,17 +38,17 @@
                 text="Skykoma: Upload Project Info">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <!-- <action class="cn.hylstudio.skykoma.plugin.idea.action.ShowScriptingEditorAction" id="ShowScriptEditorAction"
+                text="Skykoma: IDE Scripting Console">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
         <action
                 id="EditorBasics.EditorIllustrationAction"
                 class="cn.hylstudio.skykoma.plugin.idea.action.ExecuteScriptContextAction"
                 text="Skykoma: Run Selection Script"
                 description="Run Selection Script">
-            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
-        </action>
-        <action class="cn.hylstudio.skykoma.plugin.idea.action.ShowScriptingEditorAction" id="ShowScriptEditorAction"
-                text="Skykoma: IDE Scripting Console">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
-        </action>
+        </action> -->
     </actions>
     <extensions defaultExtensionNs="com.intellij">
         <applicationConfigurable instance="cn.hylstudio.skykoma.plugin.idea.config.IdeaPluginSettingsDialog" />
@@ -65,7 +66,14 @@
                         serviceImplementation="cn.hylstudio.skykoma.plugin.idea.service.impl.ProjectInfoServiceImpl"/>
         <applicationService serviceInterface="cn.hylstudio.skykoma.plugin.idea.service.IHttpService"
                         serviceImplementation="cn.hylstudio.skykoma.plugin.idea.service.impl.HttpServiceImpl"/>
+        <applicationService
+                        serviceInterface="cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer"
+                        serviceImplementation="cn.hylstudio.skykoma.plugin.idea.service.impl.IdeaPluginAgentServerImpl"/>
     </extensions>
+    <applicationListeners>
+        <listener class="cn.hylstudio.skykoma.plugin.idea.listener.ProjectOpenCloseListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+    </applicationListeners>
     <projectListeners>
         <listener class="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaBulkFileListener"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>

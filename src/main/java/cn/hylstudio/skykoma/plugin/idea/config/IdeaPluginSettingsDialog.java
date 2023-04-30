@@ -23,9 +23,13 @@ public class IdeaPluginSettingsDialog implements Configurable {
     public static final String DATA_SERVER_ENABLED = SkykomaConstants.DATA_SERVER_ENABLED;
     public static final String DATA_SERVER_API_HOST = SkykomaConstants.DATA_SERVER_API_HOST;
     public static final String DATA_SERVER_API_KEY = SkykomaConstants.DATA_SERVER_API_KEY;
+    public static final String AGENT_SERVER_LISTEN_ADDRESS = SkykomaConstants.AGENT_SERVER_LISTEN_ADDRESS;
+    public static final String AGENT_SERVER_LISTEN_PORT = SkykomaConstants.AGENT_SERVER_LISTEN_PORT;
 
     private JTextField apiHostField;
     private JTextField apiKeyField;
+    private JTextField agentServerListenAddress;
+    private JTextField agentServerListenPort;
 
     @Nls
     @Override
@@ -40,7 +44,8 @@ public class IdeaPluginSettingsDialog implements Configurable {
 
         container.add(new JLabel("Data Server Api Config"), BorderLayout.NORTH);
 
-        JPanel panel = new JPanel(new GridLayout(2, 2));
+        GridLayout gridLayout = new GridLayout(4, 2);
+        JPanel panel = new JPanel(gridLayout);
         container.add(panel, BorderLayout.CENTER);
 
         panel.add(new JLabel("Api Host"));
@@ -53,18 +58,32 @@ public class IdeaPluginSettingsDialog implements Configurable {
         panel.add(apiKeyField);
         apiKeyField.setText(propertiesComponent.getValue(DATA_SERVER_API_KEY, ""));
 
+        panel.add(new JLabel("Agent Server Listen Address"));
+        agentServerListenAddress = new JTextField();
+        panel.add(agentServerListenAddress);
+        agentServerListenAddress.setText(propertiesComponent.getValue(AGENT_SERVER_LISTEN_ADDRESS, "http://127.0.0.1"));
+
+        panel.add(new JLabel("Agent Server Listen Port"));
+        agentServerListenPort = new JTextField();
+        panel.add(agentServerListenPort);
+        agentServerListenPort.setText(propertiesComponent.getValue(AGENT_SERVER_LISTEN_PORT, "2333"));
         return container;
     }
 
     @Override
     public boolean isModified() {
         return !(Objects.equals(apiHostField.getText(), propertiesComponent.getValue(DATA_SERVER_API_HOST, "")) &&
-                Objects.equals(apiKeyField.getText(), propertiesComponent.getValue(DATA_SERVER_API_KEY, "")));
+                Objects.equals(apiKeyField.getText(), propertiesComponent.getValue(DATA_SERVER_API_KEY, "")) &&
+                Objects.equals(agentServerListenAddress.getText(), propertiesComponent.getValue(AGENT_SERVER_LISTEN_ADDRESS, "")) &&
+                Objects.equals(agentServerListenPort.getText(), propertiesComponent.getValue(AGENT_SERVER_LISTEN_PORT, ""))
+        );
     }
 
     @Override
     public void apply() throws ConfigurationException {
         propertiesComponent.setValue(DATA_SERVER_API_HOST, apiHostField.getText());
         propertiesComponent.setValue(DATA_SERVER_API_KEY, apiKeyField.getText());
+        propertiesComponent.setValue(AGENT_SERVER_LISTEN_ADDRESS, agentServerListenAddress.getText());
+        propertiesComponent.setValue(AGENT_SERVER_LISTEN_PORT, agentServerListenPort.getText());
     }
 }

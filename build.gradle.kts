@@ -24,12 +24,12 @@ import org.jetbrains.kotlin.konan.properties.loadProperties
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.8.21"
-//    id("org.jetbrains.kotlin.jupyter.api") version "0.11.0-358"
+    id("org.jetbrains.kotlin.jupyter.api") version "0.11.0-385"
     id("org.jetbrains.intellij") version "1.13.0"
 }
 
 group = "cn.hylstudio.skykoma.plugin.idea"
-version = "0.0.7"
+version = "0.0.8"
 
 allprojects {
     repositories {
@@ -37,10 +37,15 @@ allprojects {
         mavenCentral()
     }
 }
-
+kotlin {
+    jvmToolchain(17)
+}
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+//    sourceCompatibility = JavaVersion.VERSION_17
+//    targetCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
@@ -57,25 +62,29 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
 //    implementation("com.google.code.gson:gson:2.10.1")
 //    implementation("com.google.guava:guava:31.1-jre")
-//    implementation("org.jetbrains.kotlinx:kotlin-jupyter-api:0.11.0-358")
-//    implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:0.11.0-358")
+    implementation("org.jetbrains.kotlinx:kotlin-jupyter-api:0.11.0-385")
+    implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:0.11.0-385")
 
-    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:1.8.10")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0-release-345")
-    implementation("org.jetbrains.kotlin:kotlin-script-runtime:1.8.0-release-345")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:1.8.0-release-345")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl:1.8.0-release-345")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-common:1.8.0-release-345")
-//    implementation("org.jetbrains.kotlin:kotlin-compiler-fe10-for-ide:1.8.0-release-345")
-//    implementation("org.jetbrains.kotlin:kotlin-compiler-common-for-ide:1.8.0-release-345")
-    implementation("org.jetbrains.kotlin:kotlin-compiler-fe10-for-ide:1.8.0-release-345") {
-        exclude(group = "*", module = "*")
-    }
-    implementation("org.jetbrains.kotlin:kotlin-compiler-common-for-ide:1.8.0-release-345") {
-        exclude(group = "*", module = "*")
-    }
+    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:1.8.20")
+//    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl-embeddable:1.8.20")
+//    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20")
+//    implementation("org.jetbrains.kotlin:kotlin-script-runtime:1.8.20")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:1.8.20")
+//    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl:1.8.20")
+//    implementation("org.jetbrains.kotlin:kotlin-scripting-common:1.8.20")
+//    implementation("org.jetbrains.kotlin:kotlin-compiler-fe10-for-ide:1.8.20")
+//    implementation("org.jetbrains.kotlin:kotlin-compiler-common-for-ide:1.8.20")
+//    implementation("org.jetbrains.kotlin:kotlin-compiler-fe10-for-ide:1.8.20") {
+//        exclude(group = "*", module = "*")
+//    }
+//    implementation("org.jetbrains.kotlin:kotlin-compiler-common-for-ide:1.8.20") {
+//        exclude(group = "*", module = "*")
+//    }
 
     compileOnly("org.projectlombok:lombok:1.18.22")
+    implementation("io.vertx:vertx-core:4.3.2")
+    implementation("io.vertx:vertx-web:4.3.2")
+    implementation("io.vertx:vertx-web-client:4.3.2")
 }
 
 tasks {
@@ -101,22 +110,22 @@ tasks {
         kotlinStdlibDefaultDependency.set(false)
     }
     
-    prepareSandbox {
-        doLast {
-            val config = loadProperties(file("local.properties").path)
-            val bundleKotlincSrc = config.getProperty("bundle.kotlinc.path", dependencySrcKotlincPath())
-            val bundleKotlincDest = listOf(
-                    defaultDestinationDir.map { it.path }.getOrElse(""),
-                    project.name, "kotlinc"
-            ).joinToString(File.separator)
-            println("bundleKotlincSrc = \"$bundleKotlincSrc\"")
-            println("bundleKotlincDest = \"$bundleKotlincDest\"")
-            copy {
-                from(bundleKotlincSrc)
-                into(bundleKotlincDest)
-            }
-        }
-    }
+//    prepareSandbox {
+//        doLast {
+//            val config = loadProperties(file("local.properties").path)
+//            val bundleKotlincSrc = config.getProperty("bundle.kotlinc.path", dependencySrcKotlincPath())
+//            val bundleKotlincDest = listOf(
+//                    defaultDestinationDir.map { it.path }.getOrElse(""),
+//                    project.name, "kotlinc"
+//            ).joinToString(File.separator)
+//            println("bundleKotlincSrc = \"$bundleKotlincSrc\"")
+//            println("bundleKotlincDest = \"$bundleKotlincDest\"")
+//            copy {
+//                from(bundleKotlincSrc)
+//                into(bundleKotlincDest)
+//            }
+//        }
+//    }
 }
 
 fun PrepareSandboxTask.dependencySrcKotlincPath(): String {
