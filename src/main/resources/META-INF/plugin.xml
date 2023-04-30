@@ -37,6 +37,10 @@
                 text="Update Project Info And Upload">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <action class="cn.hylstudio.skykoma.plugin.idea.action.TestAction" id="TestAction"
+                text="TestAction">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
     </actions>
     <extensions defaultExtensionNs="com.intellij">
         <applicationConfigurable instance="cn.hylstudio.skykoma.plugin.idea.config.IdeaPluginSettingsDialog" />
