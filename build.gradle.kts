@@ -24,7 +24,7 @@ import org.jetbrains.kotlin.konan.properties.loadProperties
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.8.21"
-//    id("org.jetbrains.kotlin.jupyter.api") version "0.11.0-358"
+    id("org.jetbrains.kotlin.jupyter.api") version "0.11.0-358"
     id("org.jetbrains.intellij") version "1.13.0"
 }
 
@@ -57,8 +57,8 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
 //    implementation("com.google.code.gson:gson:2.10.1")
 //    implementation("com.google.guava:guava:31.1-jre")
-//    implementation("org.jetbrains.kotlinx:kotlin-jupyter-api:0.11.0-358")
-//    implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:0.11.0-358")
+    implementation("org.jetbrains.kotlinx:kotlin-jupyter-api:0.11.0-358")
+    implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:0.11.0-358")
 
     implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:1.8.10")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0-release-345")
