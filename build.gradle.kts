@@ -1,3 +1,6 @@
+import org.jetbrains.intellij.tasks.PrepareSandboxTask
+import org.jetbrains.kotlin.konan.properties.loadProperties
+
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 //allprojects {
 //    repositories {
@@ -43,8 +46,8 @@ java {
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
 //    version.set("2022.1.4")
-    version.set("2022.3.2")
-//    version.set("2023.1.1")
+//    version.set("2022.3.2")
+    version.set("2023.1.1")
     plugins.set(listOf("com.intellij.java"))
 }
 
@@ -93,4 +96,35 @@ tasks {
         sinceBuild.set("212")
         untilBuild.set("231.*")
     }
+
+    verifyPluginConfiguration{
+        kotlinStdlibDefaultDependency.set(false)
+    }
+    
+    prepareSandbox {
+        doLast {
+            val config = loadProperties(file("local.properties").path)
+            val bundleKotlincSrc = config.getProperty("bundle.kotlinc.path", dependencySrcKotlincPath())
+            val bundleKotlincDest = listOf(
+                    defaultDestinationDir.map { it.path }.getOrElse(""),
+                    project.name, "kotlinc"
+            ).joinToString(File.separator)
+            println("bundleKotlincSrc = \"$bundleKotlincSrc\"")
+            println("bundleKotlincDest = \"$bundleKotlincDest\"")
+            copy {
+                from(bundleKotlincSrc)
+                into(bundleKotlincDest)
+            }
+        }
+    }
+}
+
+fun PrepareSandboxTask.dependencySrcKotlincPath(): String {
+    val pluginDependencies = pluginDependencies.get()
+    val dependencyPluginSrc = pluginDependencies.distinctBy { it.id }.map { it.artifact.parentFile }.firstOrNull()
+            ?: error("dependencyPluginSrc empty")
+//            .gradle\caches\modules-2\files-2.1\com.jetbrains.intellij.idea\ideaIC\2023.1.1\770a0552545fe6ab0de3e2f8ac9adb7ea3046417\ideaIC-2023.1.1\plugins
+    return listOf(dependencyPluginSrc.path, "Kotlin", "kotlinc").joinToString(File.separator)
+//    println(dependencyKotlincDir)
+//    return dependencyKotlincDir
 }
