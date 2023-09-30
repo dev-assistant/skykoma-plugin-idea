@@ -483,3 +483,122 @@ Service：增强自带的创建类过程，根据类名猜测正确的包名，�
     ]
 }
 ```
+### 3.作为jupyter kernel注册
+#### 3.1.安装jupyter kotlin kernel
+```
+# 安装jupyterlab
+pip install jupyterlab kotlin-jupyter-kernel
+# 清华镜像加速安装jupyterlab
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple jupyterlab kotlin-jupyter-kernel
+```
+#### 3.2.修改run_kernel.py
+路径是`site-packages\run_kotlin_kernel\run_kernel.py`，修改部分为`#for skykoma-agent-idea begin`到`#for skykoma-agent-idea end`
+```python
+import json
+import os
+import shlex
+import subprocess
+import sys
+from kotlin_kernel import env_names
+from kotlin_kernel import port_generator
+
+
+def run_kernel(*args):
+    try:
+        run_kernel_impl(*args)
+    except KeyboardInterrupt:
+        print('Kernel interrupted')
+        try:
+            sys.exit(130)
+        except SystemExit:
+            os._exit(130)
+
+
+def module_install_path():
+    abspath = os.path.abspath(__file__)
+    current_dir = os.path.dirname(abspath)
+    return str(current_dir)
+
+
+def run_kernel_impl(connection_file, jar_args_file=None, executables_dir=None):
+    abspath = os.path.abspath(__file__)
+    current_dir = os.path.dirname(abspath)
+    if jar_args_file is None:
+        jar_args_file = os.path.join(current_dir, 'config', 'jar_args.json')
+    if executables_dir is None:
+        executables_dir = current_dir
+    jars_dir = os.path.join(executables_dir, 'jars')
+    with open(jar_args_file, 'r') as fd:
+        jar_args_json = json.load(fd)
+        debug_port = jar_args_json['debuggerPort']
+        cp = jar_args_json['classPath']
+        main_jar = jar_args_json['mainJar']
+        debug_list = []
+        if debug_port is not None and debug_port != '':
+            if debug_port == 'generate':
+                debug_port = port_generator.get_port_not_in_use(port_generator
+                    .DEFAULT_DEBUG_PORT)
+            debug_list.append(
+                '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address={}'
+                .format(debug_port))
+        else:
+            debug_port = None
+        class_path_arg = os.pathsep.join([os.path.join(jars_dir, jar_name) for
+            jar_name in cp])
+        main_jar_path = os.path.join(jars_dir, main_jar)
+        java_exec = os.getenv(env_names.KERNEL_JAVA_EXECUTABLE)
+        java_home = os.getenv(env_names.KERNEL_JAVA_HOME) or os.getenv(
+            env_names.JAVA_HOME)
+        if java_exec is not None:
+            java = java_exec
+        elif java_home is not None:
+            java = os.path.join(java_home, 'bin', 'java')
+        else:
+            java = 'java'
+        jvm_arg_str = os.getenv(env_names.KERNEL_JAVA_OPTS) or os.getenv(
+            env_names.JAVA_OPTS) or ''
+        extra_args = os.getenv(env_names.KERNEL_EXTRA_JAVA_OPTS)
+        if extra_args is not None:
+            jvm_arg_str += ' ' + extra_args
+        kernel_args = os.getenv(env_names.KERNEL_INTERNAL_ADDED_JAVA_OPTS)
+        if kernel_args is not None:
+            jvm_arg_str += ' ' + kernel_args
+        jvm_args = shlex.split(jvm_arg_str)
+        jar_args = [main_jar_path, '-classpath=' + class_path_arg,
+            connection_file, '-home=' + executables_dir]
+        if debug_port is not None:
+            jar_args.append('-debugPort=' + str(debug_port))
+        #for skykoma-agent-idea begin
+        skykoma_agent_idea = 'idea' in os.getenv('SKYKOMA_AGENT_TYPE', '')
+        if skykoma_agent_idea:
+            import requests
+            import time
+            skykoma_agent_server_api = os.getenv('SKYKOMA_AGENT_SERVER_API')
+            payload = json.dumps(jar_args[1:])
+            print('launch skykoma agent idea jupyter repl server, api: {}, args: {}'.format(skykoma_agent_server_api, payload))
+            headers = {"Content-Type": "application/json"}
+            response = requests.post(skykoma_agent_server_api, data=payload, headers=headers)
+            print(response.status_code)
+            print(response.json())
+            while True:
+                time.sleep(10000)  #avoid current process exit
+        else:
+            print([java] + jvm_args + ['-jar'] + debug_list + jar_args)  #for debug only
+            subprocess.call([java] + jvm_args + ['-jar'] + debug_list + jar_args)
+        # subprocess.call([java] + jvm_args + ['-jar'] + debug_list + jar_args)
+        #for skykoma-agent-idea end
+
+
+if __name__ == '__main__':
+    run_kernel(*sys.argv[1:])
+```
+#### 3.3.注册自定义kotlin kernel
+```
+python -m kotlin_kernel add-kernel --force --name "skykoma-agent-idea" --env SKYKOMA_AGENT_TYPE idea --env SKYKOMA_AGENT_SERVER_API http://127.0.0.1:2333/startJupyterKernel
+```
+其中SKYKOMA_AGENT_SERVER_API的监听地址和端口可修改，默认使用127.0.0.1:2333
+
+#### 3.4.启动jupyterlab
+```
+jupyter lab
+```
