@@ -592,13 +592,7 @@ def run_kernel_impl(connection_file, jar_args_file=None, executables_dir=None):
 if __name__ == '__main__':
     run_kernel(*sys.argv[1:])
 ```
-#### 3.3.注册自定义kotlin kernel
-```
-python -m kotlin_kernel add-kernel --force --name "skykoma-agent-idea" --env SKYKOMA_AGENT_TYPE idea --env SKYKOMA_AGENT_SERVER_API http://127.0.0.1:2333/startJupyterKernel
-```
-其中SKYKOMA_AGENT_SERVER_API的监听地址和端口可修改，默认使用127.0.0.1:2333
-
-#### 3.4.启动jupyterlab
+#### 3.3.启动jupyterlab
 ```
 jupyter lab
 ```
