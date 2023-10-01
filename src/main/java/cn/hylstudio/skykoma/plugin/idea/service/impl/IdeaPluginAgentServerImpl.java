@@ -2,8 +2,9 @@ package cn.hylstudio.skykoma.plugin.idea.service.impl;
 
 import cn.hylstudio.skykoma.plugin.idea.SkykomaConstants;
 import cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer;
-import cn.hylstudio.skykoma.plugin.idea.service.verticle.DelegateVerticle;
+import cn.hylstudio.skykoma.plugin.idea.service.verticle.AgentHttpApiVerticle;
 import cn.hylstudio.skykoma.plugin.idea.util.GsonUtils;
+import cn.hylstudio.skykoma.plugin.idea.util.SkykomaNotifier;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -16,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,51 +31,63 @@ import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.info;
 public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
     private static final Logger LOGGER = Logger.getInstance(IdeaPluginAgentServerImpl.class);
     private static final Vertx vertx = Vertx.vertx();
-    private static boolean started = false;
-
     private static String configAddress;
     private static Integer configPort;
 
-    private static DelegateVerticle delegateVerticle;
+    private static AgentHttpApiVerticle agentHttpApiVerticle;
 
     @Override
     public void start() {
         reloadConfig();
         String listenAddress = configAddress;
         int port = configPort;
-        if (!started) {
-            delegateVerticle = new DelegateVerticle(listenAddress, port);
-            vertx.deployVerticle(delegateVerticle, result -> {
+        if (agentHttpApiVerticle == null || !agentHttpApiVerticle.isStarted()) {
+            agentHttpApiVerticle = new AgentHttpApiVerticle(listenAddress, port);
+            vertx.deployVerticle(agentHttpApiVerticle, result -> {
                 boolean succeeded = result.succeeded();
                 info(LOGGER, String.format("IdeaPluginAgentServer start, result = %s", succeeded));
             });
             registerAsJupyterKernel();
-            started = true;
+        } else {
+            agentHttpApiVerticle.showInfo();
         }
-        info(LOGGER, "IdeaPluginAgentServer already start");
     }
 
     @Override
     public void registerAsJupyterKernel() {
-        String cmd = genRegisterKernelCmd();
+        String pythonExecutable = getPythonExecutable();
+        String cmd = genRegisterKernelCmd(pythonExecutable);
         info(LOGGER, String.format("registerAsJupyterKernel, cmd = [%s]", cmd));
         try {
-            Process process = Runtime.getRuntime().exec(cmd);
-            process.waitFor(5, TimeUnit.SECONDS);
-            info(LOGGER, String.format("registerAsJupyterKernel, execute finished, cmd = [%s]", cmd));
-            String pythonExecutable = getPythonExecutable();
-            String kernelName = getKernelName();
-            String folderName = String.format("kotlin_%s", kernelName);
-            String userJupyterPath = getUserJupyterPath(folderName);
-            File kernelJsonFile = new File(userJupyterPath + File.separator + "kernel.json");
-            String kernelJsonStr = FileUtils.readFileToString(kernelJsonFile, Charset.defaultCharset());
-            JsonObject kernelJson = JsonParser.parseString(kernelJsonStr).getAsJsonObject();
-            JsonArray argvArr = kernelJson.get("argv").getAsJsonArray();
-            argvArr.set(0, new JsonPrimitive(pythonExecutable));
-            FileUtils.writeStringToFile(kernelJsonFile, GsonUtils.JUPYTER_KERNEL_JSON.toJson(kernelJson), Charset.defaultCharset());
+            registerCustomKernel(cmd);
+            updateKernelJson(pythonExecutable);
         } catch (Exception e) {
-            error(LOGGER, String.format("registerAsJupyterKernel error, e = [%s]", e.getMessage()), e);
+            String registerError = String.format("registerAsJupyterKernel error, e = [%s]", e.getMessage());
+            error(LOGGER, registerError, e);
+            SkykomaNotifier.notifyError(registerError);
         }
+    }
+
+    private static void registerCustomKernel(String cmd) throws IOException, InterruptedException {
+        Process process = Runtime.getRuntime().exec(cmd);
+        process.waitFor(5, TimeUnit.SECONDS);
+        String registerFinished = String.format("registerAsJupyterKernel, execute finished, cmd = [%s]", cmd);
+        info(LOGGER, registerFinished);
+        SkykomaNotifier.notifyInfo(registerFinished);
+    }
+
+    private static void updateKernelJson(String pythonExecutable) throws IOException {
+        String kernelName = getKernelName();
+        String folderName = String.format("kotlin_%s", kernelName);
+        String userJupyterPath = getUserJupyterPath(folderName);
+        File kernelJsonFile = new File(userJupyterPath + File.separator + "kernel.json");
+        String kernelJsonStr = FileUtils.readFileToString(kernelJsonFile, Charset.defaultCharset());
+        JsonObject kernelJson = JsonParser.parseString(kernelJsonStr).getAsJsonObject();
+        JsonArray argvArr = kernelJson.get("argv").getAsJsonArray();
+        //python -> absPath
+        argvArr.set(0, new JsonPrimitive(pythonExecutable));
+        //TODO replace custom run_kernel cmd
+        FileUtils.writeStringToFile(kernelJsonFile, GsonUtils.JUPYTER_KERNEL_JSON.toJson(kernelJson), Charset.defaultCharset());
     }
 
     @NotNull
@@ -90,11 +104,14 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
 
     @Override
     public String genRegisterKernelCmd() {
+        return genRegisterKernelCmd(SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE_DEFAULT);
+    }
+
+    private String genRegisterKernelCmd(String pythonExecutable) {
         reloadConfig();
         String listenAddress = configAddress;
         int port = configPort;
         info(LOGGER, String.format("genRegisterKernelCmd, listenAddress = [%s], port = [%s]", listenAddress, port));
-        String pythonExecutable = getPythonExecutable();
         String kernelName = getKernelName();
         List<String> argv = new ArrayList<>();
         argv.add(pythonExecutable);
@@ -148,11 +165,12 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
     @Override
     public void stop() {
         try {
-            delegateVerticle.stop();
+            if (agentHttpApiVerticle != null) {
+                agentHttpApiVerticle.stop();
+            }
         } catch (Exception e) {
             error(LOGGER, "close agent server error", e);
         }
-        started = false;
     }
 
     @Override

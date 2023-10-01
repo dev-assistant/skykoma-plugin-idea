@@ -22,10 +22,9 @@
     <change-notes>
         <![CDATA[
       <ul>
-        <li><b>0.0.9</b>1.add data server enable checkbox
-2.support config jupyter kernel python path and kernel name
-3.support control agent server manually
-4.support auto register kernel</li>
+        <li><b>0.0.10</b>1.add Notification
+2.change txtRegisterKernelCmd min columns
+3.fix config save failed</li>
       </ul>
     ]]>
     </change-notes>
@@ -69,6 +68,12 @@
         <applicationService
                         serviceInterface="cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer"
                         serviceImplementation="cn.hylstudio.skykoma.plugin.idea.service.impl.IdeaPluginAgentServerImpl"/>
+        <notificationGroup id="Skykoma Notification - default"
+                           displayType="BALLOON"
+                           key="skykoma.notifications.default"/>
+        <notificationGroup id="Skykoma Notification - errors"
+                           displayType="STICKY_BALLOON"
+                           key="skykoma.notifications.error"/>
     </extensions>
     <applicationListeners>
         <listener class="cn.hylstudio.skykoma.plugin.idea.listener.ProjectOpenCloseListener"

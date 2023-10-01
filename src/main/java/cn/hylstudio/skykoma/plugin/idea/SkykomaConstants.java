@@ -38,6 +38,10 @@ public class SkykomaConstants {
             SkykomaConstants.REST_CONTROLLER_ANNOTATION_CLASS
     );
 
+    public static final String NOTIFICATION_GROUP_ID_DEFAULT = "Skykoma Notification - default";
+    public static final String NOTIFICATION_GROUP_KEY_DEFAULT = "skykoma.notifications.default";
+    public static final String NOTIFICATION_GROUP_ID_ERROR = "Skykoma Notification - error";
+    public static final String NOTIFICATION_GROUP_KEY_ERROR = "skykoma.notifications.error";
     public static final String PLUGIN_ID = "cn.hylstudio.skykoma.plugin.idea";
     public static final String DATA_SERVER_API_HOST = PLUGIN_ID + "config.data_server_api_host";
     public static final String DATA_SERVER_API_KEY = PLUGIN_ID + ".config.data_server_api_key";

@@ -10,7 +10,10 @@ import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.text.Document;
 import java.awt.*;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.util.Objects;
 
 public class IdeaPluginSettingsDialog implements Configurable {
@@ -32,9 +35,9 @@ public class IdeaPluginSettingsDialog implements Configurable {
     private JTextField agentServerListenAddress;
     private JTextField agentServerListenPort;
     private final JButton btnStartAgentServer = new JButton("start");
-    private final JButton btnStopAgentServer= new JButton("stop");
-    private final JButton btnRestartAgentServer= new JButton("restart");
-    private final JButton btnRegisterKernel= new JButton("register");
+    private final JButton btnStopAgentServer = new JButton("stop");
+    private final JButton btnRestartAgentServer = new JButton("restart");
+    private final JButton btnRegisterKernel = new JButton("register");
 
     @Nls
     @Override
@@ -47,36 +50,26 @@ public class IdeaPluginSettingsDialog implements Configurable {
     public JComponent createComponent() {
         JPanel container = new JPanel(new BorderLayout());
 
-        container.add(new JLabel("Data Server Api Config"), BorderLayout.NORTH);
+        container.add(new JLabel("Skykoma Config"), BorderLayout.NORTH);
 
         GridLayout gridLayout = new GridLayout(9, 2);
         JPanel panel = new JPanel(gridLayout);
         container.add(panel, BorderLayout.CENTER);
 
-        panel.add(new JLabel("Enable Data Server"));
+        panel.add(new JLabel("Data Server Switch"));
         dataServerEnabled = new JCheckBox("Enable Data Server");
         panel.add(dataServerEnabled);
         dataServerEnabled.setSelected(propertiesComponent.getBoolean(DATA_SERVER_ENABLED, SkykomaConstants.DATA_SERVER_ENABLED_DEFAULT));
 
-        panel.add(new JLabel("Api Host"));
+        panel.add(new JLabel("Data Server Api Host"));
         apiHostField = new JTextField();
         panel.add(apiHostField);
         apiHostField.setText(propertiesComponent.getValue(DATA_SERVER_API_HOST, ""));
 
-        panel.add(new JLabel("Api Key"));
+        panel.add(new JLabel("Data Server Api Key"));
         apiKeyField = new JTextField();
         panel.add(apiKeyField);
         apiKeyField.setText(propertiesComponent.getValue(DATA_SERVER_API_KEY, ""));
-
-        panel.add(new JLabel("Agent Server Listen Address"));
-        agentServerListenAddress = new JTextField();
-        panel.add(agentServerListenAddress);
-        agentServerListenAddress.setText(propertiesComponent.getValue(AGENT_SERVER_LISTEN_ADDRESS, SkykomaConstants.AGENT_SERVER_LISTEN_ADDRESS_DEFAULT));
-
-        panel.add(new JLabel("Agent Server Listen Port"));
-        agentServerListenPort = new JTextField();
-        panel.add(agentServerListenPort);
-        agentServerListenPort.setText(String.valueOf(propertiesComponent.getInt(AGENT_SERVER_LISTEN_PORT, SkykomaConstants.AGENT_SERVER_LISTEN_PORT_DEFAULT)));
 
         IdeaPluginAgentServer ideaPluginAgentServer =
                 ApplicationManager.getApplication().getService(IdeaPluginAgentServer.class);
@@ -91,10 +84,16 @@ public class IdeaPluginSettingsDialog implements Configurable {
         btnStopAgentServer.addActionListener(e -> ideaPluginAgentServer.stop());
         btnRestartAgentServer.addActionListener(e -> ideaPluginAgentServer.restart());
         btnRegisterKernel.addActionListener(e -> ideaPluginAgentServer.registerAsJupyterKernel());
-        String registerKernelCmd = ideaPluginAgentServer.genRegisterKernelCmd();
-        panel.add(new JLabel("Jupyter Kernel register cmd"));
-        panel.add(new TextField(registerKernelCmd));
 
+        panel.add(new JLabel("Agent Server Listen Address"));
+        agentServerListenAddress = new JTextField();
+        panel.add(agentServerListenAddress);
+        agentServerListenAddress.setText(propertiesComponent.getValue(AGENT_SERVER_LISTEN_ADDRESS, SkykomaConstants.AGENT_SERVER_LISTEN_ADDRESS_DEFAULT));
+
+        panel.add(new JLabel("Agent Server Listen Port"));
+        agentServerListenPort = new JTextField();
+        panel.add(agentServerListenPort);
+        agentServerListenPort.setText(String.valueOf(propertiesComponent.getInt(AGENT_SERVER_LISTEN_PORT, SkykomaConstants.AGENT_SERVER_LISTEN_PORT_DEFAULT)));
 
         panel.add(new JLabel("Jupyter Kernel Name"));
         jupyterKernelName = new JTextField();
@@ -105,6 +104,27 @@ public class IdeaPluginSettingsDialog implements Configurable {
         jupyterPythonExecutable = new JTextField();
         panel.add(jupyterPythonExecutable);
         jupyterPythonExecutable.setText(propertiesComponent.getValue(JUPYTER_PYTHON_EXECUTABLE, SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE_DEFAULT));
+
+        String registerKernelCmd = ideaPluginAgentServer.genRegisterKernelCmd();
+        panel.add(new JLabel("Jupyter Kernel register cmd"));
+        JTextField txtRegisterKernelCmd = new JTextField(registerKernelCmd);
+        txtRegisterKernelCmd.setColumns(30);
+        panel.add(txtRegisterKernelCmd);
+        txtRegisterKernelCmd.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                Document doc = txtRegisterKernelCmd.getDocument();
+                if (doc != null) {
+                    txtRegisterKernelCmd.setCaretPosition(doc.getLength());
+                    txtRegisterKernelCmd.moveCaretPosition(0);
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                txtRegisterKernelCmd.select(0, 0);
+            }
+        });
 
         return container;
     }
@@ -123,7 +143,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
 
     @Override
     public void apply() throws ConfigurationException {
-        propertiesComponent.setValue(DATA_SERVER_ENABLED, dataServerEnabled.isEnabled());
+        propertiesComponent.setValue(DATA_SERVER_ENABLED, dataServerEnabled.isSelected());
         propertiesComponent.setValue(DATA_SERVER_API_HOST, apiHostField.getText());
         propertiesComponent.setValue(DATA_SERVER_API_KEY, apiKeyField.getText());
         propertiesComponent.setValue(AGENT_SERVER_LISTEN_ADDRESS, agentServerListenAddress.getText());

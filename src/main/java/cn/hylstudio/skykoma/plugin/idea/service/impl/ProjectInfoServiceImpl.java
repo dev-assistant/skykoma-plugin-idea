@@ -135,6 +135,12 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
     public ProjectInfoDto uploadProjectInfo() {
         Project project = projectInfoDto.getProject();
         assert project != null;
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        boolean dataServerEnabled = propertiesComponent.getBoolean(SkykomaConstants.DATA_SERVER_ENABLED, false);
+        if (!dataServerEnabled) {
+            LOGGER.info("updateProjectInfo failed, dataServerEnabled is false");
+            return null;
+        }
         String projectKey = queryProjectKey(projectInfoDto);
         if (StringUtils.isEmpty(projectKey)) {
             LOGGER.error(
