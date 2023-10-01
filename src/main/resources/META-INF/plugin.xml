@@ -22,10 +22,10 @@
     <change-notes>
         <![CDATA[
       <ul>
-        <li><b>0.0.8</b>test jupyter java 17</li>
-        <li><b>0.0.5</b>修复autowire不自动import的bug</li>
-        <li><b>0.0.4</b>新增常用动态代码模板</li>
-        <li><b>0.0.3</b>新增常用静态代码模板</li>
+        <li><b>0.0.9</b>1.add data server enable checkbox
+2.support config jupyter kernel python path and kernel name
+3.support control agent server manually
+4.support auto register kernel</li>
       </ul>
     ]]>
     </change-notes>

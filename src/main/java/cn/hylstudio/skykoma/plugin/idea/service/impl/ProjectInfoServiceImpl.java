@@ -50,26 +50,32 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
     }
 
     @Override
-    public void onProjectSmartModeReady(Project project) {
+    public void setCurrentProject(Project project) {
         Project mProject = projectInfoDto.getProject();
         if (mProject != null) {
             return;
         }
         String projectName = project.getName();
-        info(LOGGER, String.format("onProjectSmartModeReady, project = %s", projectName));
+        info(LOGGER, String.format("setCurrentProject, project = %s", projectName));
         projectInfoDto.setProject(project);
         projectInfoDto.setName(projectName);
     }
 
-    @Override
-    public ProjectInfoDto updateProjectInfo() {
-        return updateProjectInfo(false);
-    }
+//    @Override
+//    public ProjectInfoDto updateProjectInfo() {
+//        return updateProjectInfo(false);
+//    }
 
     @Override
     public ProjectInfoDto updateProjectInfo(boolean autoUpload) {
         Project project = projectInfoDto.getProject();
         assert project != null;
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        boolean dataServerEnabled = propertiesComponent.getBoolean(SkykomaConstants.DATA_SERVER_ENABLED, false);
+        if (!dataServerEnabled) {
+            LOGGER.info("updateProjectInfo failed, dataServerEnabled is false");
+            return null;
+        }
         String projectKey = queryProjectKey(projectInfoDto);
         if (StringUtils.isEmpty(projectKey)) {
             LOGGER.error(String.format("parseProjectInfo error, projectKey empty, path = [%s]", project.getBasePath()));

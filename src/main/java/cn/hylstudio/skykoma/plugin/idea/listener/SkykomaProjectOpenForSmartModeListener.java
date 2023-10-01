@@ -16,6 +16,6 @@ public class SkykomaProjectOpenForSmartModeListener implements StartupActivity.R
         String name = project.getName();
         info(LOGGER, String.format("project smart mode ready, project = [%s]", name));
         IProjectInfoService projectService = project.getService(IProjectInfoService.class);
-        projectService.onProjectSmartModeReady(project);
+        projectService.setCurrentProject(project);
     }
 }

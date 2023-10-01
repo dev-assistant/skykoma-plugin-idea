@@ -20,7 +20,7 @@ public class SkykomaProjectOpenForBackgroundTaskListener implements StartupActiv
         Application application = ApplicationManager.getApplication();
         application.runReadAction(() -> {
             IProjectInfoService projectService = project.getService(IProjectInfoService.class);
-            projectService.onProjectSmartModeReady(project);
+            projectService.setCurrentProject(project);
             projectService.updateProjectInfo(true);
         });
     }

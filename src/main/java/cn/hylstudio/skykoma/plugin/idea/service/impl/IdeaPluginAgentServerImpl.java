@@ -3,76 +3,124 @@ package cn.hylstudio.skykoma.plugin.idea.service.impl;
 import cn.hylstudio.skykoma.plugin.idea.SkykomaConstants;
 import cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer;
 import cn.hylstudio.skykoma.plugin.idea.service.verticle.DelegateVerticle;
-import com.google.common.collect.Lists;
+import cn.hylstudio.skykoma.plugin.idea.util.GsonUtils;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import io.vertx.core.Vertx;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.error;
+import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.info;
 
 public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
+    private static final Logger LOGGER = Logger.getInstance(IdeaPluginAgentServerImpl.class);
     private static final Vertx vertx = Vertx.vertx();
     private static boolean started = false;
-    private static final Logger LOGGER = Logger.getInstance(IdeaPluginAgentServerImpl.class);
 
-    private void start(String listenAddress, int port) {
+    private static String configAddress;
+    private static Integer configPort;
+
+    private static DelegateVerticle delegateVerticle;
+
+    @Override
+    public void start() {
+        reloadConfig();
+        String listenAddress = configAddress;
+        int port = configPort;
         if (!started) {
-            DelegateVerticle delegateVerticle = new DelegateVerticle(listenAddress, port);
+            delegateVerticle = new DelegateVerticle(listenAddress, port);
             vertx.deployVerticle(delegateVerticle, result -> {
                 boolean succeeded = result.succeeded();
-                LOGGER.info(String.format("IDeaPluginAgentServerImpl start, result = %s", succeeded));
+                info(LOGGER, String.format("IdeaPluginAgentServer start, result = %s", succeeded));
             });
-//            registerJupyterKernelIdea(listenAddress, port);
+            registerAsJupyterKernel();
             started = true;
         }
-        LOGGER.info("IDeaPluginAgentServerImpl already start");
+        info(LOGGER, "IdeaPluginAgentServer already start");
     }
 
-    private void registerJupyterKernelIdea(String listenAddress, int port) {
-        LOGGER.info(String.format("registerJupyterKernelIdea, listenAddress = [%s], port = [%s]", listenAddress, port));
-        List<String> argv = Lists.newArrayList(
-                "python",
-                "-m kotlin_kernel",
-                "add-kernel",
-                "--force",
-                "--env SKYKOMA_AGENT_TYPE idea"
-        );
-        String kernelName = "skykoma-agent-idea";
-        String folderName = String.format("kotlin_%s", kernelName);
-        argv.add(String.format("--name \"%s\"", kernelName));
-        argv.add(String.format("--env SKYKOMA_AGENT_SERVER_API http://%s:%s/startJupyterKernel", listenAddress, port));
-        String javaExecutable = detectedJavaExecutable();
-        if (!StringUtils.isEmpty(javaExecutable)) {
-            argv.add(String.format("--env KOTLIN_JUPYTER_JAVA_EXECUTABLE %s", javaExecutable));
-        }
-        String cmd = String.join(" ", argv);
-        LOGGER.info(String.format("registerJupyterKernelIdea, cmd = [%s]", cmd));
+    @Override
+    public void registerAsJupyterKernel() {
+        String cmd = genRegisterKernelCmd();
+        info(LOGGER, String.format("registerAsJupyterKernel, cmd = [%s]", cmd));
         try {
-            Runtime.getRuntime().exec(cmd);
-//            python -m kotlin_kernel add-kernel --force --env SKYKOMA_AGENT_TYPE idea --name "skykoma-agent-idea" --env SKYKOMA_AGENT_SERVER_API http://127.0.0.1:2333/startJupyterKernel
-//            C:\Users\hyl\AppData\Roaming\jupyter\kernels\kotlin_skykoma-agent-idea\kernel.json
-//            String userJupyterPath = getUserJupyterPath(folderName);
-//            File kernelJsonFile = new File(userJupyterPath + File.separator + "kernel.json");
-//            String kernelJsonStr = FileUtils.readFileToString(kernelJsonFile, Charset.defaultCharset());
-//            JsonObject kernelJson = JsonParser.parseString(kernelJsonStr).getAsJsonObject();
-//            JsonArray argvArr = kernelJson.get("argv").getAsJsonArray();
+            Process process = Runtime.getRuntime().exec(cmd);
+            process.waitFor(5, TimeUnit.SECONDS);
+            info(LOGGER, String.format("registerAsJupyterKernel, execute finished, cmd = [%s]", cmd));
+            String pythonExecutable = getPythonExecutable();
+            String kernelName = getKernelName();
+            String folderName = String.format("kotlin_%s", kernelName);
+            String userJupyterPath = getUserJupyterPath(folderName);
+            File kernelJsonFile = new File(userJupyterPath + File.separator + "kernel.json");
+            String kernelJsonStr = FileUtils.readFileToString(kernelJsonFile, Charset.defaultCharset());
+            JsonObject kernelJson = JsonParser.parseString(kernelJsonStr).getAsJsonObject();
+            JsonArray argvArr = kernelJson.get("argv").getAsJsonArray();
+            argvArr.set(0, new JsonPrimitive(pythonExecutable));
+            FileUtils.writeStringToFile(kernelJsonFile, GsonUtils.JUPYTER_KERNEL_JSON.toJson(kernelJson), Charset.defaultCharset());
         } catch (Exception e) {
-            LOGGER.error(String.format("registerJupyterKernelIdea error, e = [%s]", e.getMessage()), e);
+            error(LOGGER, String.format("registerAsJupyterKernel error, e = [%s]", e.getMessage()), e);
         }
+    }
+
+    @NotNull
+    private static String getKernelName() {
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        return SkykomaConstants.JUPYTER_KERNEL_NAME_PREFIX + propertiesComponent.getValue(SkykomaConstants.JUPYTER_KERNEL_NAME, SkykomaConstants.JUPYTER_KERNEL_NAME_DEFAULT);
+    }
+
+    @NotNull
+    private static String getPythonExecutable() {
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        return propertiesComponent.getValue(SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE, SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE_DEFAULT);
+    }
+
+    @Override
+    public String genRegisterKernelCmd() {
+        reloadConfig();
+        String listenAddress = configAddress;
+        int port = configPort;
+        info(LOGGER, String.format("genRegisterKernelCmd, listenAddress = [%s], port = [%s]", listenAddress, port));
+        String pythonExecutable = getPythonExecutable();
+        String kernelName = getKernelName();
+        List<String> argv = new ArrayList<>();
+        argv.add(pythonExecutable);
+        argv.add("-m kotlin_kernel");
+        argv.add("add-kernel");
+        argv.add("--force");
+        argv.add(String.format("--name \"%s\"", kernelName));
+        argv.add(String.format("--env SKYKOMA_AGENT_SERVER_API %s:%s/startJupyterKernel", listenAddress, port));
+        argv.add("--env SKYKOMA_AGENT_TYPE idea");
+//        String javaExecutable = detectedJavaExecutable();
+//        if (!StringUtils.isEmpty(javaExecutable)) {
+//            argv.add(String.format("--env KOTLIN_JUPYTER_JAVA_EXECUTABLE %s", javaExecutable));
+//        }
+        String cmd = String.join(" ", argv);
+        return cmd;
     }
 
     private static String getUserJupyterPath(String folderName) {
         Path path = null;
         String systemCode = System.getProperty("os.name");
         if (systemCode.startsWith("Windows")) {
-            path = Path.of(System.getenv("APPDATA"), "jupyter", folderName);
+            path = Path.of(System.getenv("APPDATA"), "jupyter", "kernels", folderName);
         } else if (systemCode.startsWith("Linux")) {
-            path = Path.of(System.getProperty("user.home") + "/.local/share/jupyter", folderName);
+            path = Path.of(System.getProperty("user.home") + "/.local/share/jupyter", "kernels", folderName);
         } else if (systemCode.startsWith("Mac")) {
-            path = Path.of(System.getProperty("user.home") + "/Library/Jupyter", folderName);
+            path = Path.of(System.getProperty("user.home") + "/Library/Jupyter", "kernels", folderName);
         } else {
             throw new RuntimeException("Unknown platform: " + systemCode);
         }
@@ -98,20 +146,32 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
     }
 
     @Override
-    public void start() {
+    public void stop() {
+        try {
+            delegateVerticle.stop();
+        } catch (Exception e) {
+            error(LOGGER, "close agent server error", e);
+        }
+        started = false;
+    }
+
+    @Override
+    public void restart() {
+        stop();
+        start();
+    }
+
+    private static void reloadConfig() {
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
-        String defaultAddress = "http://127.0.0.1";
-        int defaultPort = 2333;
         String configAddress = propertiesComponent.getValue(SkykomaConstants.AGENT_SERVER_LISTEN_ADDRESS, "");
         if (StringUtils.isEmpty(configAddress)) {
-            configAddress = defaultAddress;
+            configAddress = SkykomaConstants.AGENT_SERVER_LISTEN_ADDRESS_DEFAULT;
         }
-        int configPort = propertiesComponent.getInt(SkykomaConstants.AGENT_SERVER_LISTEN_PORT, defaultPort);
-        LOGGER.info(String.format("reading config configAddress = %s", configAddress));
-        LOGGER.info(String.format("reading config port = %s", configPort));
-        if (configAddress.startsWith("http://")) {
-            configAddress = configAddress.replace("http://", "");
-        }
-        start(configAddress, configPort);
+        int configPort = propertiesComponent.getInt(SkykomaConstants.AGENT_SERVER_LISTEN_PORT, SkykomaConstants.AGENT_SERVER_LISTEN_PORT_DEFAULT);
+        info(LOGGER, String.format("IdeaPluginAgentServer reading config configAddress = %s", configAddress));
+        info(LOGGER, String.format("IdeaPluginAgentServer reading config port = %s", configPort));
+        IdeaPluginAgentServerImpl.configAddress = configAddress;
+        IdeaPluginAgentServerImpl.configPort = configPort;
     }
+
 }

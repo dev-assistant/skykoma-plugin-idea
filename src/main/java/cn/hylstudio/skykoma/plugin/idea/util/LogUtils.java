@@ -13,8 +13,19 @@ public class LogUtils {
         System.out.println(msg);
         logger.info(msg);
     }
+
     public static void info(String msg) {
         System.out.println(msg);
         LOGGER.info(msg);
+    }
+
+    public static void error(Logger logger, String msg, Throwable throwable) {
+        System.err.println(msg);
+        logger.error(msg, throwable);
+    }
+
+    public static void error(String msg, Throwable throwable) {
+        System.err.println(msg);
+        LOGGER.error(msg, throwable);
     }
 }

@@ -13,6 +13,9 @@ public class GsonUtils {
     public static final Gson PSI_GSON = new GsonBuilder()
             .registerTypeAdapter(PsiElement.class, new PsiElementSerializer())
             .create();
+    public static final Gson JUPYTER_KERNEL_JSON = new GsonBuilder()
+            .setPrettyPrinting()
+            .create();
 
     private GsonUtils() {
     }

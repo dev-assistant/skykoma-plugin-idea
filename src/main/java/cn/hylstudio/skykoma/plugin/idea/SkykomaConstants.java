@@ -42,6 +42,14 @@ public class SkykomaConstants {
     public static final String DATA_SERVER_API_HOST = PLUGIN_ID + "config.data_server_api_host";
     public static final String DATA_SERVER_API_KEY = PLUGIN_ID + ".config.data_server_api_key";
     public static final String DATA_SERVER_ENABLED = PLUGIN_ID + ".config.data_server_enabled";
+    public static final Boolean DATA_SERVER_ENABLED_DEFAULT = Boolean.FALSE;
     public static final String AGENT_SERVER_LISTEN_ADDRESS = PLUGIN_ID + ".config.agent_server_listen_address";
+    public static final String AGENT_SERVER_LISTEN_ADDRESS_DEFAULT = "http://127.0.0.1";
     public static final String AGENT_SERVER_LISTEN_PORT = PLUGIN_ID + ".config.agent_server_listen_port";
+    public static final int AGENT_SERVER_LISTEN_PORT_DEFAULT = 2333;
+    public static final String JUPYTER_PYTHON_EXECUTABLE = PLUGIN_ID + ".config.jupyter_python_executable";
+    public static final String JUPYTER_PYTHON_EXECUTABLE_DEFAULT = "python";
+    public static final String JUPYTER_KERNEL_NAME = PLUGIN_ID + ".config.jupyter_kernel_name";
+    public static final String JUPYTER_KERNEL_NAME_PREFIX = "skykoma-agent-";
+    public static final String JUPYTER_KERNEL_NAME_DEFAULT = "idea";
 }

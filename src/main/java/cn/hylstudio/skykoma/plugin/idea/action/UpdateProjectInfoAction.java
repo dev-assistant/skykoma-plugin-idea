@@ -3,6 +3,7 @@
 package cn.hylstudio.skykoma.plugin.idea.action;
 
 import cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
@@ -34,7 +35,6 @@ public class UpdateProjectInfoAction extends AnAction {
 //                    }
 //                    indicator.setFraction((double) i / 100); // 更新进度条
 //                }
-
                 Application application = ApplicationManager.getApplication();
                 application.runReadAction(() -> {
                     IProjectInfoService projectService = project.getService(IProjectInfoService.class);

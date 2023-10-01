@@ -6,12 +6,11 @@ import cn.hylstudio.skykoma.plugin.idea.model.result.JsonResult;
 import cn.hylstudio.skykoma.plugin.idea.util.GsonUtils;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.ide.plugins.PluginManagerCore;
-import com.intellij.openapi.application.Application;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -20,11 +19,15 @@ import io.vertx.ext.web.handler.CorsHandler;
 import java.util.Arrays;
 
 public class DelegateVerticle extends AbstractVerticle {
+    private HttpServer httpServer;
     private String listenAddress;
     private int port;
     private static final Logger LOGGER = Logger.getInstance(DelegateVerticle.class);
 
     public DelegateVerticle(String listenAddress, int port) {
+        if (listenAddress.startsWith("http://")) {
+            listenAddress = listenAddress.replace("http://", "");
+        }
         this.listenAddress = listenAddress;
         this.port = port;
     }
@@ -51,11 +54,10 @@ public class DelegateVerticle extends AbstractVerticle {
                 // Start listening
                 .listen(port, listenAddress)
                 // Print the port
-                .onSuccess(server ->
-                        LOGGER.info(
-                                "HTTP server started on " + listenAddress + ":" + server.actualPort()
-                        )
-                );
+                .onSuccess(server -> {
+                    this.httpServer = server;
+                    LOGGER.info("HTTP server started on " + listenAddress + ":" + server.actualPort());
+                });
     }
 
     private void startJupyterKernel(RoutingContext routingContext) {
@@ -97,5 +99,11 @@ public class DelegateVerticle extends AbstractVerticle {
         context.response().end(GsonUtils.GSON.toJson(jsonResult));
     }
 
-
+    @Override
+    public void stop() throws Exception {
+        if (httpServer != null) {
+            httpServer.close();
+        }
+        super.stop();
+    }
 }
