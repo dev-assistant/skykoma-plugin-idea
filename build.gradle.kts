@@ -31,18 +31,11 @@ plugins {
 group = "cn.hylstudio.skykoma.plugin.idea"
 version = "0.0.8"
 
-allprojects {
-    repositories {
-        maven { setUrl("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-ide-plugin-dependencies/") }
-        mavenCentral()
-    }
-}
 kotlin {
     jvmToolchain(17)
 }
+
 java {
-//    sourceCompatibility = JavaVersion.VERSION_17
-//    targetCompatibility = JavaVersion.VERSION_17
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
@@ -50,6 +43,7 @@ java {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
+//    version.set("2021.2.3")
 //    version.set("2022.1.4")
 //    version.set("2022.3.2")
     version.set("2023.1.1")
@@ -94,7 +88,14 @@ tasks {
     withType {
         compileJava {
             options.encoding = "UTF-8"
+//            sourceCompatibility = "11"
+//            targetCompatibility = "11"
         }
+//        compileKotlin{
+//            kotlinOptions {
+//                jvmTarget = "11"
+//            }
+//        }
     }
     buildSearchableOptions {
         enabled = false
