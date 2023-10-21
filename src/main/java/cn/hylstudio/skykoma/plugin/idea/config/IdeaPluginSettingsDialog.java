@@ -1,6 +1,5 @@
 package cn.hylstudio.skykoma.plugin.idea.config;
 
-import cn.hylstudio.skykoma.plugin.idea.SkykomaConstants;
 import cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -16,16 +15,10 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.util.Objects;
 
+import static cn.hylstudio.skykoma.plugin.idea.SkykomaConstants.*;
+
 public class IdeaPluginSettingsDialog implements Configurable {
     private final PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
-
-    private static final String DATA_SERVER_ENABLED = SkykomaConstants.DATA_SERVER_ENABLED;
-    private static final String DATA_SERVER_API_HOST = SkykomaConstants.DATA_SERVER_API_HOST;
-    private static final String DATA_SERVER_API_KEY = SkykomaConstants.DATA_SERVER_API_KEY;
-    private static final String AGENT_SERVER_LISTEN_ADDRESS = SkykomaConstants.AGENT_SERVER_LISTEN_ADDRESS;
-    private static final String AGENT_SERVER_LISTEN_PORT = SkykomaConstants.AGENT_SERVER_LISTEN_PORT;
-    private static final String JUPYTER_KERNEL_NAME = SkykomaConstants.JUPYTER_KERNEL_NAME;
-    private static final String JUPYTER_PYTHON_EXECUTABLE = SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE;
 
     private JCheckBox dataServerEnabled;
     private JTextField apiHostField;
@@ -34,6 +27,11 @@ public class IdeaPluginSettingsDialog implements Configurable {
     private JTextField jupyterKernelName;
     private JTextField agentServerListenAddress;
     private JTextField agentServerListenPort;
+    private JTextField jupyterKernelHbPort;
+    private JTextField jupyterKernelShellPort;
+    private JTextField jupyterKernelIopubPort;
+    private JTextField jupyterKernelStdinPort;
+    private JTextField jupyterKernelControlPort;
     private final JButton btnStartAgentServer = new JButton("start");
     private final JButton btnStopAgentServer = new JButton("stop");
     private final JButton btnRestartAgentServer = new JButton("restart");
@@ -52,14 +50,14 @@ public class IdeaPluginSettingsDialog implements Configurable {
 
         container.add(new JLabel("Skykoma Config"), BorderLayout.NORTH);
 
-        GridLayout gridLayout = new GridLayout(9, 2);
+        GridLayout gridLayout = new GridLayout(14, 2);
         JPanel panel = new JPanel(gridLayout);
         container.add(panel, BorderLayout.CENTER);
 
         panel.add(new JLabel("Data Server Switch"));
         dataServerEnabled = new JCheckBox("Enable Data Server");
         panel.add(dataServerEnabled);
-        dataServerEnabled.setSelected(propertiesComponent.getBoolean(DATA_SERVER_ENABLED, SkykomaConstants.DATA_SERVER_ENABLED_DEFAULT));
+        dataServerEnabled.setSelected(propertiesComponent.getBoolean(DATA_SERVER_ENABLED, DATA_SERVER_ENABLED_DEFAULT));
 
         panel.add(new JLabel("Data Server Api Host"));
         apiHostField = new JTextField();
@@ -88,22 +86,47 @@ public class IdeaPluginSettingsDialog implements Configurable {
         panel.add(new JLabel("Agent Server Listen Address"));
         agentServerListenAddress = new JTextField();
         panel.add(agentServerListenAddress);
-        agentServerListenAddress.setText(propertiesComponent.getValue(AGENT_SERVER_LISTEN_ADDRESS, SkykomaConstants.AGENT_SERVER_LISTEN_ADDRESS_DEFAULT));
+        agentServerListenAddress.setText(propertiesComponent.getValue(AGENT_SERVER_LISTEN_ADDRESS, AGENT_SERVER_LISTEN_ADDRESS_DEFAULT));
 
         panel.add(new JLabel("Agent Server Listen Port"));
         agentServerListenPort = new JTextField();
         panel.add(agentServerListenPort);
-        agentServerListenPort.setText(String.valueOf(propertiesComponent.getInt(AGENT_SERVER_LISTEN_PORT, SkykomaConstants.AGENT_SERVER_LISTEN_PORT_DEFAULT)));
+        agentServerListenPort.setText(String.valueOf(propertiesComponent.getInt(AGENT_SERVER_LISTEN_PORT, AGENT_SERVER_LISTEN_PORT_DEFAULT)));
 
         panel.add(new JLabel("Jupyter Kernel Name"));
         jupyterKernelName = new JTextField();
         panel.add(jupyterKernelName);
-        jupyterKernelName.setText(propertiesComponent.getValue(JUPYTER_KERNEL_NAME, SkykomaConstants.JUPYTER_KERNEL_NAME_DEFAULT));
+        jupyterKernelName.setText(propertiesComponent.getValue(JUPYTER_KERNEL_NAME, JUPYTER_KERNEL_NAME_DEFAULT));
 
         panel.add(new JLabel("Jupyter Python Executable"));
         jupyterPythonExecutable = new JTextField();
         panel.add(jupyterPythonExecutable);
-        jupyterPythonExecutable.setText(propertiesComponent.getValue(JUPYTER_PYTHON_EXECUTABLE, SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE_DEFAULT));
+        jupyterPythonExecutable.setText(propertiesComponent.getValue(JUPYTER_PYTHON_EXECUTABLE, JUPYTER_PYTHON_EXECUTABLE_DEFAULT));
+
+        panel.add(new JLabel("Jupyter Kernel HB Port"));
+        jupyterKernelHbPort = new JTextField();
+        panel.add(jupyterKernelHbPort);
+        jupyterKernelHbPort.setText(String.valueOf(propertiesComponent.getInt(JUPYTER_SERVER_HB_PORT, JUPYTER_SERVER_HB_PORT_DEFAULT)));
+
+        panel.add(new JLabel("Jupyter Kernel Shell Port"));
+        jupyterKernelShellPort = new JTextField();
+        panel.add(jupyterKernelShellPort);
+        jupyterKernelShellPort.setText(String.valueOf(propertiesComponent.getInt(JUPYTER_SERVER_SHELL_PORT, JUPYTER_SERVER_SHELL_PORT_DEFAULT)));
+
+        panel.add(new JLabel("Jupyter Kernel IOPUB Port"));
+        jupyterKernelIopubPort = new JTextField();
+        panel.add(jupyterKernelIopubPort);
+        jupyterKernelIopubPort.setText(String.valueOf(propertiesComponent.getInt(JUPYTER_SERVER_IOPUB_PORT, JUPYTER_SERVER_IOPUB_PORT_DEFAULT)));
+
+        panel.add(new JLabel("Jupyter Kernel Stdin Port"));
+        jupyterKernelStdinPort = new JTextField();
+        panel.add(jupyterKernelStdinPort);
+        jupyterKernelStdinPort.setText(String.valueOf(propertiesComponent.getInt(JUPYTER_SERVER_STDIN_PORT, JUPYTER_SERVER_STDIN_PORT_DEFAULT)));
+
+        panel.add(new JLabel("Jupyter Kernel Control Port"));
+        jupyterKernelControlPort = new JTextField();
+        panel.add(jupyterKernelControlPort);
+        jupyterKernelControlPort.setText(String.valueOf(propertiesComponent.getInt(JUPYTER_SERVER_CONTROL_PORT, JUPYTER_SERVER_CONTROL_PORT_DEFAULT)));
 
         String registerKernelCmd = ideaPluginAgentServer.genRegisterKernelCmd();
         panel.add(new JLabel("Jupyter Kernel register cmd"));
@@ -113,6 +136,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
         txtRegisterKernelCmd.addFocusListener(new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
+                txtRegisterKernelCmd.setText(ideaPluginAgentServer.genRegisterKernelCmd());
                 Document doc = txtRegisterKernelCmd.getDocument();
                 if (doc != null) {
                     txtRegisterKernelCmd.setCaretPosition(doc.getLength());
@@ -137,7 +161,12 @@ public class IdeaPluginSettingsDialog implements Configurable {
                 Objects.equals(agentServerListenAddress.getText(), propertiesComponent.getValue(AGENT_SERVER_LISTEN_ADDRESS, "")) &&
                 Objects.equals(agentServerListenPort.getText(), propertiesComponent.getValue(AGENT_SERVER_LISTEN_PORT, "")) &&
                 Objects.equals(jupyterKernelName.getText(), propertiesComponent.getValue(JUPYTER_KERNEL_NAME, "")) &&
-                Objects.equals(jupyterPythonExecutable.getText(), propertiesComponent.getValue(JUPYTER_PYTHON_EXECUTABLE, ""))
+                Objects.equals(jupyterPythonExecutable.getText(), propertiesComponent.getValue(JUPYTER_PYTHON_EXECUTABLE, "")) &&
+                Objects.equals(jupyterKernelHbPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_HB_PORT, "")) &&
+                Objects.equals(jupyterKernelShellPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_SHELL_PORT, "")) &&
+                Objects.equals(jupyterKernelIopubPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_IOPUB_PORT, "")) &&
+                Objects.equals(jupyterKernelStdinPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_STDIN_PORT, "")) &&
+                Objects.equals(jupyterKernelControlPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_CONTROL_PORT, ""))
         );
     }
 
@@ -150,5 +179,10 @@ public class IdeaPluginSettingsDialog implements Configurable {
         propertiesComponent.setValue(AGENT_SERVER_LISTEN_PORT, agentServerListenPort.getText());
         propertiesComponent.setValue(JUPYTER_KERNEL_NAME, jupyterKernelName.getText());
         propertiesComponent.setValue(JUPYTER_PYTHON_EXECUTABLE, jupyterPythonExecutable.getText());
+        propertiesComponent.setValue(JUPYTER_SERVER_HB_PORT, jupyterKernelHbPort.getText());
+        propertiesComponent.setValue(JUPYTER_SERVER_SHELL_PORT, jupyterKernelShellPort.getText());
+        propertiesComponent.setValue(JUPYTER_SERVER_IOPUB_PORT, jupyterKernelIopubPort.getText());
+        propertiesComponent.setValue(JUPYTER_SERVER_STDIN_PORT, jupyterKernelStdinPort.getText());
+        propertiesComponent.setValue(JUPYTER_SERVER_CONTROL_PORT, jupyterKernelControlPort.getText());
     }
 }

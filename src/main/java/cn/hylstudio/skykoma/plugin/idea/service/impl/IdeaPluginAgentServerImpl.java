@@ -1,11 +1,11 @@
 package cn.hylstudio.skykoma.plugin.idea.service.impl;
 
+import cn.hylstudio.skykoma.plugin.idea.KotlinReplWrapper;
 import cn.hylstudio.skykoma.plugin.idea.SkykomaConstants;
 import cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer;
 import cn.hylstudio.skykoma.plugin.idea.service.verticle.AgentHttpApiVerticle;
 import cn.hylstudio.skykoma.plugin.idea.util.GsonUtils;
 import cn.hylstudio.skykoma.plugin.idea.util.SkykomaNotifier;
-import cn.hylstudio.skykoma.plugin.idea.KotlinReplWrapper;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -19,13 +19,12 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -129,11 +128,17 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         argv.add(String.format("--name %s", kernelName));
         argv.add(String.format("--env SKYKOMA_AGENT_SERVER_API %s:%s/startJupyterKernel", listenAddress, port));
         argv.add("--env SKYKOMA_AGENT_TYPE idea");
-        argv.add("--env JUPYTER_SERVER_HB_PORT 2334");
-        argv.add("--env JUPYTER_SERVER_SHELL_PORT 2335");
-        argv.add("--env JUPYTER_SERVER_IOPUB_PORT 2336");
-        argv.add("--env JUPYTER_SERVER_STDIN_PORT 2337");
-        argv.add("--env JUPYTER_SERVER_CONTROL_PORT 2338");
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        int jupyterServerHbPort = propertiesComponent.getInt(SkykomaConstants.JUPYTER_SERVER_HB_PORT, SkykomaConstants.JUPYTER_SERVER_HB_PORT_DEFAULT);
+        int jupyterShellPort = propertiesComponent.getInt(SkykomaConstants.JUPYTER_SERVER_SHELL_PORT, SkykomaConstants.JUPYTER_SERVER_SHELL_PORT_DEFAULT);
+        int jupyterIopubPort = propertiesComponent.getInt(SkykomaConstants.JUPYTER_SERVER_IOPUB_PORT, SkykomaConstants.JUPYTER_SERVER_IOPUB_PORT_DEFAULT);
+        int jupyterStdinPort = propertiesComponent.getInt(SkykomaConstants.JUPYTER_SERVER_STDIN_PORT, SkykomaConstants.JUPYTER_SERVER_STDIN_PORT_DEFAULT);
+        int jupyterControlPort = propertiesComponent.getInt(SkykomaConstants.JUPYTER_SERVER_CONTROL_PORT, SkykomaConstants.JUPYTER_SERVER_CONTROL_PORT_DEFAULT);
+        argv.add(String.format("--env JUPYTER_SERVER_HB_PORT %s", jupyterServerHbPort));
+        argv.add(String.format("--env JUPYTER_SERVER_SHELL_PORT %s", jupyterShellPort));
+        argv.add(String.format("--env JUPYTER_SERVER_IOPUB_PORT %s", jupyterIopubPort));
+        argv.add(String.format("--env JUPYTER_SERVER_STDIN_PORT %s", jupyterStdinPort));
+        argv.add(String.format("--env JUPYTER_SERVER_CONTROL_PORT %s", jupyterControlPort));
         // String javaExecutable = detectedJavaExecutable();
         // if (!StringUtils.isEmpty(javaExecutable)) {
         // argv.add(String.format("--env KOTLIN_JUPYTER_JAVA_EXECUTABLE %s",
@@ -234,7 +239,6 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
             String startJupyterKernelErrorMsg = String.format("startJupyterKernel has error, e = [%s]", e.getMessage());
             error(LOGGER, startJupyterKernelErrorMsg, e);
             SkykomaNotifier.notifyError(startJupyterKernelErrorMsg);
-            return;
         }
     }
 
@@ -255,6 +259,6 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
             } catch (Exception ignored) {
             }
         }
-        LOGGER.info(String.format("stopJupyterKernel finished"));
+        LOGGER.info("stopJupyterKernel finished");
     }
 }

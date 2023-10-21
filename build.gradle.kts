@@ -29,7 +29,11 @@ plugins {
 }
 
 group = "cn.hylstudio.skykoma.plugin.idea"
-version = "0.0.15"
+version = if (project.hasProperty("projVersion")) {
+    project.findProperty("projVersion") as String
+} else {
+    "0.0.16"
+}
 
 kotlin {
     jvmToolchain(17)
