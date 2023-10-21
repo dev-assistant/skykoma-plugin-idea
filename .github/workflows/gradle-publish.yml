@@ -38,8 +38,6 @@ jobs:
         arguments: buildPlugin -PprojVersion=${{steps.get_version.outputs.VERSION}}
     - name: Create Release
       uses: softprops/action-gh-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         body: ${{steps.get_version.outputs.VERSION}}
         files: build/distributions/skykoma-plugin-idea-${{steps.get_version.outputs.VERSION}}.zip
