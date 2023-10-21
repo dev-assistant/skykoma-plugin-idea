@@ -16,8 +16,7 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      contents: write
     steps:
     - name: Get version
       id: get_version
