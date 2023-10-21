@@ -11,4 +11,8 @@ public interface IdeaPluginAgentServer {
 
     String genRegisterKernelCmd();
 
+    void startJupyterKernel(String payload);
+
+    void stopJupyterKernel();
+
 }

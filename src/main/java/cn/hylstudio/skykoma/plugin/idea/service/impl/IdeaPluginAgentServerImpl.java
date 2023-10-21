@@ -5,10 +5,13 @@ import cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer;
 import cn.hylstudio.skykoma.plugin.idea.service.verticle.AgentHttpApiVerticle;
 import cn.hylstudio.skykoma.plugin.idea.util.GsonUtils;
 import cn.hylstudio.skykoma.plugin.idea.util.SkykomaNotifier;
+import cn.hylstudio.skykoma.plugin.idea.KotlinReplWrapper;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import com.intellij.ide.plugins.IdeaPluginDescriptor;
+import com.intellij.ide.plugins.PluginManagerCore;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import io.vertx.core.Vertx;
@@ -16,10 +19,12 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -33,7 +38,7 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
     private static final Vertx vertx = Vertx.vertx();
     private static String configAddress;
     private static Integer configPort;
-
+    private static Thread jupyterServerThread = null;
     private static AgentHttpApiVerticle agentHttpApiVerticle;
 
     @Override
@@ -84,22 +89,25 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         String kernelJsonStr = FileUtils.readFileToString(kernelJsonFile, Charset.defaultCharset());
         JsonObject kernelJson = JsonParser.parseString(kernelJsonStr).getAsJsonObject();
         JsonArray argvArr = kernelJson.get("argv").getAsJsonArray();
-        //python -> absPath
+        // python -> absPath
         argvArr.set(0, new JsonPrimitive(pythonExecutable));
-        //TODO replace custom run_kernel cmd
-        FileUtils.writeStringToFile(kernelJsonFile, GsonUtils.JUPYTER_KERNEL_JSON.toJson(kernelJson), Charset.defaultCharset());
+        // TODO replace custom run_kernel cmd
+        FileUtils.writeStringToFile(kernelJsonFile, GsonUtils.JUPYTER_KERNEL_JSON.toJson(kernelJson),
+                Charset.defaultCharset());
     }
 
     @NotNull
     private static String getKernelName() {
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
-        return SkykomaConstants.JUPYTER_KERNEL_NAME_PREFIX + propertiesComponent.getValue(SkykomaConstants.JUPYTER_KERNEL_NAME, SkykomaConstants.JUPYTER_KERNEL_NAME_DEFAULT);
+        return SkykomaConstants.JUPYTER_KERNEL_NAME_PREFIX + propertiesComponent
+                .getValue(SkykomaConstants.JUPYTER_KERNEL_NAME, SkykomaConstants.JUPYTER_KERNEL_NAME_DEFAULT);
     }
 
     @NotNull
     private static String getPythonExecutable() {
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
-        return propertiesComponent.getValue(SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE, SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE_DEFAULT);
+        return propertiesComponent.getValue(SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE,
+                SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE_DEFAULT);
     }
 
     @Override
@@ -118,13 +126,19 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         argv.add("-m kotlin_kernel");
         argv.add("add-kernel");
         argv.add("--force");
-        argv.add(String.format("--name \"%s\"", kernelName));
+        argv.add(String.format("--name %s", kernelName));
         argv.add(String.format("--env SKYKOMA_AGENT_SERVER_API %s:%s/startJupyterKernel", listenAddress, port));
         argv.add("--env SKYKOMA_AGENT_TYPE idea");
-//        String javaExecutable = detectedJavaExecutable();
-//        if (!StringUtils.isEmpty(javaExecutable)) {
-//            argv.add(String.format("--env KOTLIN_JUPYTER_JAVA_EXECUTABLE %s", javaExecutable));
-//        }
+        argv.add("--env JUPYTER_SERVER_HB_PORT 2334");
+        argv.add("--env JUPYTER_SERVER_SHELL_PORT 2335");
+        argv.add("--env JUPYTER_SERVER_IOPUB_PORT 2336");
+        argv.add("--env JUPYTER_SERVER_STDIN_PORT 2337");
+        argv.add("--env JUPYTER_SERVER_CONTROL_PORT 2338");
+        // String javaExecutable = detectedJavaExecutable();
+        // if (!StringUtils.isEmpty(javaExecutable)) {
+        // argv.add(String.format("--env KOTLIN_JUPYTER_JAVA_EXECUTABLE %s",
+        // javaExecutable));
+        // }
         String cmd = String.join(" ", argv);
         return cmd;
     }
@@ -185,11 +199,62 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         if (StringUtils.isEmpty(configAddress)) {
             configAddress = SkykomaConstants.AGENT_SERVER_LISTEN_ADDRESS_DEFAULT;
         }
-        int configPort = propertiesComponent.getInt(SkykomaConstants.AGENT_SERVER_LISTEN_PORT, SkykomaConstants.AGENT_SERVER_LISTEN_PORT_DEFAULT);
+        int configPort = propertiesComponent.getInt(SkykomaConstants.AGENT_SERVER_LISTEN_PORT,
+                SkykomaConstants.AGENT_SERVER_LISTEN_PORT_DEFAULT);
         info(LOGGER, String.format("IdeaPluginAgentServer reading config configAddress = %s", configAddress));
         info(LOGGER, String.format("IdeaPluginAgentServer reading config port = %s", configPort));
         IdeaPluginAgentServerImpl.configAddress = configAddress;
         IdeaPluginAgentServerImpl.configPort = configPort;
     }
 
+    @Override
+    public void startJupyterKernel(String payload) {
+        stopJupyterKernel();
+        IdeaPluginDescriptor ideaPluginDescriptor = Arrays.stream(PluginManagerCore.getPlugins())
+                .filter(v -> v.getPluginId().getIdString().equals(SkykomaConstants.PLUGIN_ID))
+                .findFirst().orElse(null);
+        if (ideaPluginDescriptor == null) {
+            SkykomaNotifier.notifyError("startJupyterKernel failed, can't find ideaPluginDescriptor");
+            return;
+        }
+        ClassLoader pluginClassLoader = ideaPluginDescriptor.getPluginClassLoader();
+        if (pluginClassLoader == null) {
+            SkykomaNotifier.notifyError("startJupyterKernel failed, can't find pluginClassLoader");
+            return;
+        }
+        try {
+            jupyterServerThread = new Thread(() -> {
+                KotlinReplWrapper wrapper = KotlinReplWrapper.getInstance(pluginClassLoader);
+                wrapper.makeEmbeddedRepl(payload);
+            });
+            jupyterServerThread.setContextClassLoader(pluginClassLoader);
+            jupyterServerThread.start();
+            SkykomaNotifier.notifyInfo("startJupyterKernel succ");
+        } catch (Exception e) {
+            String startJupyterKernelErrorMsg = String.format("startJupyterKernel has error, e = [%s]", e.getMessage());
+            error(LOGGER, startJupyterKernelErrorMsg, e);
+            SkykomaNotifier.notifyError(startJupyterKernelErrorMsg);
+            return;
+        }
+    }
+
+    @Override
+    public void stopJupyterKernel() {
+        if (jupyterServerThread == null) {
+            return;
+        }
+        int n = 5;
+        while (n-- > 0) {
+            LOGGER.info(String.format("stopJupyterKernel, try times remains = [%s]", n));
+            try {
+                if (jupyterServerThread.isInterrupted()) {
+                    break;
+                } else {
+                    jupyterServerThread.interrupt();
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        LOGGER.info(String.format("stopJupyterKernel finished"));
+    }
 }

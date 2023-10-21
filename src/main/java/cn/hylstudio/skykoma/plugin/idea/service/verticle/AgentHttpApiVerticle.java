@@ -1,13 +1,12 @@
 package cn.hylstudio.skykoma.plugin.idea.service.verticle;
 
-import cn.hylstudio.skykoma.plugin.idea.KotlinReplWrapper;
+import cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer;
 import cn.hylstudio.skykoma.plugin.idea.SkykomaConstants;
 import cn.hylstudio.skykoma.plugin.idea.model.result.JsonResult;
 import cn.hylstudio.skykoma.plugin.idea.util.GsonUtils;
 import cn.hylstudio.skykoma.plugin.idea.util.SkykomaNotifier;
-import com.intellij.ide.plugins.IdeaPluginDescriptor;
-import com.intellij.ide.plugins.PluginManagerCore;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.application.ApplicationManager;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -17,7 +16,6 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 
-import java.util.Arrays;
 
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.error;
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.info;
@@ -49,7 +47,7 @@ public class AgentHttpApiVerticle extends AbstractVerticle {
         // Mount the handler for all incoming requests at every path and HTTP method
         router.route().handler(CorsHandler.create());
         router.route().handler(BodyHandler.create());
-//        router.route().handler(this::checkAuth);
+        // router.route().handler(this::checkAuth);
         router.route(HttpMethod.POST, "/startJupyterKernel").handler(this::startJupyterKernel);
         // Create the HTTP server
         vertx.createHttpServer()
@@ -74,42 +72,10 @@ public class AgentHttpApiVerticle extends AbstractVerticle {
     private void startJupyterKernel(RoutingContext routingContext) {
         String payload = routingContext.body().asString();
         info(LOGGER, String.format("startJupyterKernel, payload = [%s]", payload));
-        IdeaPluginDescriptor ideaPluginDescriptor = Arrays.stream(PluginManagerCore.getPlugins())
-                .filter(v -> v.getPluginId().getIdString().equals(SkykomaConstants.PLUGIN_ID))
-                .findFirst().orElse(null);
-        if (ideaPluginDescriptor == null) {
-            String startJupyterKernelErrorMsg = "startJupyterKernel failed, can't find ideaPluginDescriptor";
-            JsonResult<Object> jsonResult = new JsonResult<>("S00005", startJupyterKernelErrorMsg, null);
-            SkykomaNotifier.notifyError(startJupyterKernelErrorMsg);
-            responseJson(routingContext, jsonResult);
-            return;
-        }
-        ClassLoader pluginClassLoader = ideaPluginDescriptor.getPluginClassLoader();
-        if (pluginClassLoader == null) {
-            String startJupyterKernelErrorMsg = "startJupyterKernel failed, can't find pluginClassLoader";
-            JsonResult<Object> jsonResult = new JsonResult<>("S00005", startJupyterKernelErrorMsg, null);
-            SkykomaNotifier.notifyError(startJupyterKernelErrorMsg);
-            responseJson(routingContext, jsonResult);
-            return;
-        }
-        try {
-            Thread thread = new Thread(() -> {
-                KotlinReplWrapper wrapper = KotlinReplWrapper.getInstance(pluginClassLoader);
-                wrapper.makeEmbeddedRepl(payload);
-            });
-            thread.setContextClassLoader(pluginClassLoader);
-            thread.start();
-        } catch (Exception e) {
-            String startJupyterKernelErrorMsg = String.format("startJupyterKernel has error, e = [%s]", e.getMessage());
-            error(LOGGER, startJupyterKernelErrorMsg, e);
-            SkykomaNotifier.notifyError(startJupyterKernelErrorMsg);
-            JsonResult<Object> jsonResult = new JsonResult<>("S00005", "startJupyterKernel failed3", null);
-            responseJson(routingContext, jsonResult);
-            return;
-        }
-        String startJupyterKernelSucc = "startJupyterKernel succ";
-        JsonResult<Object> jsonResult = JsonResult.succResult(startJupyterKernelSucc, null);
-        SkykomaNotifier.notifyInfo(startJupyterKernelSucc);
+        IdeaPluginAgentServer ideaPluginAgentServer =
+                ApplicationManager.getApplication().getService(IdeaPluginAgentServer.class);
+        ideaPluginAgentServer.startJupyterKernel(payload);
+        JsonResult<Object> jsonResult = JsonResult.succResult("startJupyterKernelSucc", null);
         responseJson(routingContext, jsonResult);
     }
 

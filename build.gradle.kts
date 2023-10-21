@@ -29,7 +29,7 @@ plugins {
 }
 
 group = "cn.hylstudio.skykoma.plugin.idea"
-version = "0.0.10"
+version = "0.0.15"
 
 kotlin {
     jvmToolchain(17)
