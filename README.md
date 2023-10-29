@@ -513,3 +513,5 @@ $SKYKOMA_PYTHON_BIN/jupyter lab --ip=0.0.0.0
 #allow root
 $SKYKOMA_PYTHON_BIN/jupyter lab --ip=0.0.0.0 --allow-root 
 ```
+## 编译
+`./gradlew buildPlugin -PprojVersion=VERSION`
