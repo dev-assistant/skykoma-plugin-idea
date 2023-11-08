@@ -54,14 +54,14 @@ public class IdeaPluginCodeGenSettingsDialog implements Configurable {
 
     @Override
     public boolean isModified() {
-        return !(Objects.equals(generateCurrentMethodName.isSelected(), propertiesComponent.getBoolean(GENERATE_CURRENT_METHOD_NAME_ENABLED, GENERATE_CURRENT_METHOD_NAME_ENABLED_DEFAULT)) &&
+        return !(Objects.equals(String.valueOf(generateCurrentMethodName.isSelected()), String.valueOf(propertiesComponent.getBoolean(GENERATE_CURRENT_METHOD_NAME_ENABLED, GENERATE_CURRENT_METHOD_NAME_ENABLED_DEFAULT))) &&
                 Objects.equals(logVariableName.getText(), propertiesComponent.getValue(GENERATE_LOG_VARIABLE_NAME, GENERATE_LOG_VARIABLE_NAME_DEFAULT))
         );
     }
 
     @Override
     public void apply() throws ConfigurationException {
-        propertiesComponent.setValue(GENERATE_CURRENT_METHOD_NAME_ENABLED, generateCurrentMethodName.isSelected());
+        propertiesComponent.setValue(GENERATE_CURRENT_METHOD_NAME_ENABLED, String.valueOf(generateCurrentMethodName.isSelected()));
         propertiesComponent.setValue(GENERATE_LOG_VARIABLE_NAME, logVariableName.getText());
     }
 }
