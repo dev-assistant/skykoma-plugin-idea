@@ -51,6 +51,7 @@
     </actions>
     <extensions defaultExtensionNs="com.intellij">
         <applicationConfigurable instance="cn.hylstudio.skykoma.plugin.idea.config.IdeaPluginSettingsDialog" />
+        <applicationConfigurable instance="cn.hylstudio.skykoma.plugin.idea.config.IdeaPluginCodeGenSettingsDialog" />
         <defaultLiveTemplates file="/liveTemplates/skykomaLiveTemplates.xml"/>
         <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenLogBeforeCurrentLineMacro"/>
         <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenAllSetterByParamMacro"/>

@@ -67,4 +67,10 @@ public class SkykomaConstants {
     public static final String JUPYTER_KERNEL_NAME = PLUGIN_CONFIG_PREFIX + "jupyter_kernel_name";
     public static final String JUPYTER_KERNEL_NAME_PREFIX = "skykoma-agent-";
     public static final String JUPYTER_KERNEL_NAME_DEFAULT = "idea";
+    
+    public static final String GENERATE_CURRENT_METHOD_NAME_ENABLED = PLUGIN_CONFIG_PREFIX + "gen_current_method_name";
+    public static final Boolean GENERATE_CURRENT_METHOD_NAME_ENABLED_DEFAULT = true;
+    public static final String GENERATE_LOG_VARIABLE_NAME = PLUGIN_CONFIG_PREFIX + "gen_log_variable_name";
+    public static final String GENERATE_LOG_VARIABLE_NAME_DEFAULT = "LOGGER";
+
 }
