@@ -2,6 +2,7 @@ package cn.hylstudio.skykoma.plugin.idea;
 
 import com.google.common.collect.Sets;
 
+import java.util.Collections;
 import java.util.Set;
 
 public class SkykomaConstants {
@@ -33,6 +34,7 @@ public class SkykomaConstants {
     public static final String JPA_TABLE_CLASS = "javax.persistence.Table";
     public static final String JPA_COLUMN_CLASS = "javax.persistence.Column";
     public static final String JPA_ENTITY_ANNOTATION_CLASS = "javax.persistence.Entity";
+    public static final Set<String> LOMBOK_SLF4J = Collections.singleton("lombok.extern.slf4j.Slf4j");
     public static final Set<String> CONTROLLER_ANNOTATIONS = Sets.newHashSet(
             SkykomaConstants.CONTROLLER_ANNOTATION_CLASS,
             SkykomaConstants.REST_CONTROLLER_ANNOTATION_CLASS
