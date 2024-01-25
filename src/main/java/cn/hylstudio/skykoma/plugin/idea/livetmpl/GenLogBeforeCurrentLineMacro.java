@@ -4,18 +4,15 @@ import cn.hylstudio.skykoma.plugin.idea.SkykomaConstants;
 import cn.hylstudio.skykoma.plugin.idea.util.PsiUtils;
 import com.intellij.codeInsight.template.*;
 import com.intellij.codeInsight.template.macro.MacroBase;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.psi.*;
-import com.intellij.psi.scope.PsiScopeProcessor;
 import com.intellij.psi.scope.processor.VariablesProcessor;
 import com.intellij.psi.scope.util.PsiScopesUtil;
-import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.psi.search.SearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
-import org.jetbrains.annotations.NotNull;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -67,10 +64,10 @@ public class GenLogBeforeCurrentLineMacro extends MacroBase {
         }
         String methodName = currentMethod.getName();
 //        List<PsiParameter> parameters = Arrays.asList(currentMethod.getParameterList().getParameters());
-//        List<PsiVariable> parameters = Arrays.asList(currentMethod.getParameterList().getParameters());
+        List<PsiVariable> parameters = Arrays.asList(currentMethod.getParameterList().getParameters());
         //TODO 去掉前面打印过的变量
-        List<String> logParams = new ArrayList<>();// parameters.stream().map(PsiParameter::getName).collect(Collectors.toList());
-        List<PsiVariable> localVariables = getLocalVariables(editor, currentMethod);
+        List<String> logParams = parameters.stream().map(PsiVariable::getName).collect(Collectors.toList());
+        List<PsiVariable> localVariables = getLocalVariables(editor, currentMethod.getBody());
         boolean isController = PsiUtils.classHasAnnotation(currentClass, SkykomaConstants.CONTROLLER_ANNOTATIONS);
         mergeLocalVariables(logParams, isController, localVariables);
         String paramsPattern = logParams.stream()
@@ -103,10 +100,13 @@ public class GenLogBeforeCurrentLineMacro extends MacroBase {
         });
     }
 
-    private List<PsiVariable> getLocalVariables(Editor editor, PsiMethod containingMethod) {
+    private List<PsiVariable> getLocalVariables(Editor editor, PsiCodeBlock containingMethodBody) {
         List<PsiVariable> result = new ArrayList<>();
+        if (containingMethodBody == null) {
+            return result;
+        }
         int offset = editor.getCaretModel().getOffset();
-        PsiFile psiFile = containingMethod.getContainingFile();
+        PsiFile psiFile = containingMethodBody.getContainingFile();
         PsiElement element = psiFile.findElementAt(offset);
         if (element == null) {
             return result;
@@ -117,7 +117,7 @@ public class GenLogBeforeCurrentLineMacro extends MacroBase {
                 return true;
             }
         };
-        PsiScopesUtil.treeWalkUp(variablesProcessor, element, containingMethod);
+        PsiScopesUtil.treeWalkUp(variablesProcessor, element, containingMethodBody);
         for (int i = variablesProcessor.size() - 1; i >= 0; i--) {
             PsiVariable variable = variablesProcessor.getResult(i);
             result.add(variable);
