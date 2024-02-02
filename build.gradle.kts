@@ -50,7 +50,7 @@ intellij {
 //    version.set("2021.2.3")
 //    version.set("2022.1.4")
 //    version.set("2022.3.2")
-    version.set("2023.1.1")
+    version.set("2023.3.3")
     plugins.set(listOf("com.intellij.java"))
 }
 
@@ -108,7 +108,7 @@ tasks {
     patchPluginXml {
         version.set("${project.version}")
         sinceBuild.set("212")
-        untilBuild.set("231.*")
+        untilBuild.set("233.*")
     }
 
     verifyPluginConfiguration{
