@@ -1,13 +1,46 @@
 package cn.hylstudio.skykoma.plugin.idea.util
 
+import com.intellij.ide.DataManager
 import com.intellij.lang.jvm.annotation.*
+import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.editor.Caret
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
+import com.intellij.psi.util.PsiTreeUtil
+import org.jetbrains.kotlin.utils.keysToMap
 
+fun getDataContext(): DataContext? {
+    val dataManager = DataManager.getInstance()
+    return dataManager.dataContextFromFocusAsync.blockingGet(10)
+}
+
+val DataContext.currentPsiFile: PsiFile? get() = CommonDataKeys.PSI_FILE.getData(this)
+val DataContext.currentPsiElement: PsiElement? get() = CommonDataKeys.PSI_ELEMENT.getData(this)
+val DataContext.caret: Caret? get() = CommonDataKeys.CARET.getData(this)
+val PsiFile.psiClasses: List<PsiClass>
+    get() {
+        return mutableListOf<PsiClass>().also {
+            this.accept(object : JavaRecursiveElementVisitor() {
+                override fun visitClass(aClass: PsiClass) {
+                    super.visitClass(aClass)
+                    it.add(aClass)
+                }
+            })
+        }
+    }
+val PsiFile.psiClass: PsiClass? get() = this.psiClasses.firstOrNull()
+val PsiFile.currentPsiElement: PsiElement?
+    get() {
+        val psiElement: PsiElement? = getDataContext()?.currentPsiElement
+        return if (psiElement?.containingFile == this) psiElement else null
+    }
+val PsiElement.containingMethod: PsiMethod? get() = PsiTreeUtil.getParentOfType(this, PsiMethod::class.java)
+val PsiElement.containingClass: PsiClass? get() = this.containingMethod?.containingClass
 val PsiElement.lineNumber
     get():Int {
         val v: PsiElement = this
@@ -38,40 +71,67 @@ fun PsiClass.findAnnotation(fullyQualifiedName: String): PsiAnnotation? {
 }
 
 val PsiClass.psiAnnotations: Array<PsiAnnotation> get() = this.modifierList?.annotations ?: arrayOf()
-val PsiClass.isController: Boolean
+val PsiClass.isSpringController: Boolean
     get() {
         val psiClass: PsiClass = this
         return runReadAction<Boolean> {
-            val annotationRestController: PsiAnnotation? = psiClass.findAnnotation("org.springframework.web.bind.annotation.RestController")
-            val annotationController: PsiAnnotation? = psiClass.findAnnotation("org.springframework.stereotype.Controller")
+            val annotationRestController: PsiAnnotation? =
+                psiClass.findAnnotation("org.springframework.web.bind.annotation.RestController")
+            val annotationController: PsiAnnotation? =
+                psiClass.findAnnotation("org.springframework.stereotype.Controller")
             annotationRestController != null || annotationController != null
         }
     }
 
-fun JvmAnnotationAttributeValue.parseValue(): List<String> {
+fun JvmAnnotationAttributeValue.parseValue(): Map<String, Any> {
     when (this) {
         is JvmAnnotationConstantValue -> {  // For PsiAnnotationConstantValue
-            return listOf("const", this.constantValue as String)
+            return mapOf<String, Any>(
+                "type" to "const",
+                "value" to this.constantValue.toString()
+            )
         }
 
         is JvmAnnotationEnumFieldValue -> {  // For PsiAnnotationEnumFieldValue
-            return listOf("enum", "${this.containingClassName}.${this.fieldName}")
+            return mapOf<String, Any>(
+                "type" to "enum",
+                "value" to "${this.containingClassName}.${this.fieldName}"
+            )
         }
 
         is JvmAnnotationArrayValue -> {  // For PsiAnnotationArrayValue
-            return this.values.map { it.parseValue() }.flatten()
+            return mapOf<String, Any>(
+                "type" to "arr",
+                "value" to this.values.map { it.parseValue() }//List<Map<String, Any>>(
+            )
         }
 
         is JvmAnnotationClassValue -> {  // For PsiAnnotationClassValue
-            return listOf("class", this.qualifiedName ?: "")
+            return mapOf<String, Any>(
+                "type" to "class",
+                "value" to (this.qualifiedName ?: "")
+            )
         }
-        // is JvmNestedAnnotationValue -> {  // For PsiNestedAnnotationValue
-        //     // println(this.value)
-        //     return listOf("annotation", "")//TODO
-        // }
+
+        is JvmNestedAnnotationValue -> {  // For PsiNestedAnnotationValue
+            // println(this.value)
+            val annotation = this.value
+            val value: Map<String, Map<String, Any>> = annotation.attributes.associateBy(
+                { it.attributeName },
+                { it.attributeValue?.parseValue() ?: mapOf() })
+            return mapOf<String, Any>(
+                "type" to "annotation",
+                "qualifiedName" to (annotation?.qualifiedName ?: ""),
+                "value" to value
+            )
+        }
+
         else -> {
             // handle unexpected type
-            return listOf("unknown", "")
+            return mapOf<String, Any>(
+                "type" to "unknown",
+                "value" to ""
+            )
         }
     }
 

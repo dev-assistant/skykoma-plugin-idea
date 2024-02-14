@@ -7,7 +7,6 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectLocator
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.vfs.VfsUtil
@@ -15,6 +14,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.psi.PsiManager
 import com.intellij.ui.AppIcon
+import com.intellij.util.xml.DomManager
 import org.jetbrains.jps.model.java.JavaResourceRootType
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import javax.swing.JFrame
@@ -50,7 +50,7 @@ fun getOpenedProjects(): Array<Project> {
 
 fun openProjectByFolder(projectFolderDir: String): Project? {
     val openedProjects: Array<Project> = getOpenedProjects()
-    val project: Project? = openedProjects.filter { it.basePath == projectFolderDir }.firstOrNull()
+    val project: Project? = openedProjects.firstOrNull { it.basePath == projectFolderDir }
     if (project != null) {
         project.requestFocus()
         return project
@@ -59,12 +59,13 @@ fun openProjectByFolder(projectFolderDir: String): Project? {
 }
 
 fun filterProjectByName(projectName: String): Project? {
-    return getOpenedProjects().filter { it.name == projectName }.firstOrNull()
+    return getOpenedProjects().firstOrNull { it.name == projectName }
 }
 
 val Project.psiManager: PsiManager get() = PsiManager.getInstance(this)
 val Project.fileEditorManager: FileEditorManager get() = FileEditorManager.getInstance(this)
 val Project.moduleManager: ModuleManager get() = ModuleManager.getInstance(this)
+val Project.domManager: DomManager get() = DomManager.getDomManager(this)
 val Project.modules: Array<Module> get() = this.moduleManager.modules
 
 fun Project.printInfo() {
@@ -105,26 +106,54 @@ val Project.currentBranch: String
         return projectDir.gitCurrentBranch
     }
 
-fun filterJavaFile(sourceRoot: VirtualFile): List<VirtualFile> =
-        mutableListOf<VirtualFile>().also { javaFiles ->
-            VfsUtil.iterateChildrenRecursively(
-                    sourceRoot,
-                    { true },
-                    { if (!it.isDirectory && it.name.endsWith(".java")) javaFiles.add(it); true }
-            )
-        }
+fun filterFileByExtension(sourceRoot: VirtualFile, extension: String): List<VirtualFile> =
+    mutableListOf<VirtualFile>().also { result ->
+        VfsUtil.iterateChildrenRecursively(
+            sourceRoot,
+            { true },
+            { if (!it.isDirectory && it.name.endsWith(extension)) result.add(it); true }
+        )
+    }
 
-fun Project.scanJavaFile(scanCb: (Module, VirtualFile, Int, Int, VirtualFile) -> Unit) {
+fun Project.scanJavaFiles(scanCb: (Module, VirtualFile, Int, Int, VirtualFile) -> Unit) {
+    scanFileByExtension(".java", scanCb)
+}
+
+fun Project.scanXmlFiles(scanCb: (Module, VirtualFile, Int, Int, VirtualFile) -> Unit) {
+    scanFileByExtension(".xml", scanCb)
+}
+
+fun Project.scanFileByExtension(extension: String, scanCb: (Module, VirtualFile, Int, Int, VirtualFile) -> Unit) {
     val modules: Array<Module> = this.modules
     modules.forEach { module ->
         module.srcRoots.forEach { srcRoot ->
-            val javaFiles: List<VirtualFile> = filterJavaFile(srcRoot)
+            val srcResult: List<VirtualFile> = filterFileByExtension(srcRoot, extension)
 //            println("scan moduleName:${module.name},javaFiles:${javaFiles.size},srcRoot:${srcRoot}")
-            javaFiles.forEachIndexed { i, it ->
-                scanCb(module, srcRoot, i, javaFiles.size, it)
+            srcResult.forEachIndexed { i, it ->
+                scanCb(module, srcRoot, i, srcResult.size, it)
+            }
+        }
+        module.resourceRoots.forEach { resRoot ->
+            val resResult: List<VirtualFile> = filterFileByExtension(resRoot, extension)
+//            println("scan moduleName:${module.name},javaFiles:${javaFiles.size},resRoot:${resRoot}")
+            resResult.forEachIndexed { i, it ->
+                scanCb(module, resRoot, i, resResult.size, it)
+            }
+        }
+        module.testSrcRoots.forEach { testSrcRoot ->
+            val testSrcResult: List<VirtualFile> = filterFileByExtension(testSrcRoot, extension)
+//            println("scan moduleName:${module.name},javaFiles:${javaFiles.size},testSrcRoot:${testSrcRoot}")
+            testSrcResult.forEachIndexed { i, it ->
+                scanCb(module, testSrcRoot, i, testSrcResult.size, it)
+            }
+        }
+        module.testResourceRoots.forEach { testResRoot ->
+            val testResResult: List<VirtualFile> = filterFileByExtension(testResRoot, extension)
+//            println("scan moduleName:${module.name},javaFiles:${javaFiles.size},testResRoot:${testResRoot}")
+            testResResult.forEachIndexed { i, it ->
+                scanCb(module, testResRoot, i, testResResult.size, it)
             }
         }
     }
 }
 
-val VirtualFile.project:Project? get() =  ProjectLocator.getInstance().guessProjectForFile(this)

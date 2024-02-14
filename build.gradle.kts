@@ -32,7 +32,7 @@ group = "cn.hylstudio.skykoma.plugin.idea"
 version = if (project.hasProperty("projVersion")) {
     project.findProperty("projVersion") as String
 } else {
-    "v0.0.21"
+    "v0.0.23"
 }
 
 kotlin {
@@ -50,7 +50,7 @@ intellij {
 //    version.set("2021.2.3")
 //    version.set("2022.1.4")
 //    version.set("2022.3.2")
-    version.set("2023.3.3")
+    version.set("2023.1.5")
     plugins.set(listOf("com.intellij.java"))
 }
 

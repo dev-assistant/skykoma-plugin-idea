@@ -2,7 +2,7 @@
 尝试尽可能减少人工对IDE的重复操作
 - 1.模板代码自动生成
 - 2.获取当前项目语义并上报
-
+- 3.支持将idea作为jupyter-kotlin-kernel注册
 ## 功能说明
 ### 1.模板代码自动生成
 模板代码生成主要依赖于LiveTemplate实现，分为静态生成和动态生成，静态生成是上下文无关的，动态生成可感知代码上下文。
@@ -514,4 +514,6 @@ $SKYKOMA_PYTHON_BIN/jupyter lab --ip=0.0.0.0
 $SKYKOMA_PYTHON_BIN/jupyter lab --ip=0.0.0.0 --allow-root 
 ```
 ## 编译
+需要使用jdk17运行gradlew
+
 `./gradlew buildPlugin -PprojVersion=VERSION`
