@@ -12,6 +12,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.refactoring.suggested.startOffset
 import org.jetbrains.kotlin.utils.keysToMap
 
 fun getDataContext(): DataContext? {
@@ -54,14 +55,30 @@ val PsiElement.lineNumber
         val lineNumber: Int = document.getLineNumber(textOffset)
         return lineNumber + 1
     }
+val PsiElement.columnNumber
+    get():Int {
+        val v: PsiElement = this
+        val containingFile: PsiFile = v.containingFile
+        val fileViewProvider: FileViewProvider = containingFile.viewProvider
+        val document: Document = fileViewProvider.document
+        val textOffset: Int = v.textOffset
+        if (textOffset < 0) {
+            return 1
+        }
+        val lineNumber: Int = document.getLineNumber(textOffset)
+        return textOffset - document.getLineStartOffset(lineNumber)
+    }
 
 fun PsiElement.requestFocus() {
     val v: PsiElement = this
-    val lineNum: Int = v.lineNumber
+//    val lineNum: Int = v.lineNumber
+//    val columnNum: Int = v.columnNumber
     val project: Project = v.project
     val psiFile: PsiFile = v.containingFile
     val virtualFile: VirtualFile = psiFile.virtualFile
-    val openFileDescriptor: OpenFileDescriptor = OpenFileDescriptor(project, virtualFile, lineNum - 1, 0)
+    val offset = v.textOffset
+//    val openFileDescriptor: OpenFileDescriptor = OpenFileDescriptor(project, virtualFile, lineNum - 1, columnNum)
+    val openFileDescriptor: OpenFileDescriptor = OpenFileDescriptor(project, virtualFile, offset)
     val fileEditorManager: FileEditorManager = project.fileEditorManager
     invokeLater { fileEditorManager.openTextEditor(openFileDescriptor, true); }
 }
