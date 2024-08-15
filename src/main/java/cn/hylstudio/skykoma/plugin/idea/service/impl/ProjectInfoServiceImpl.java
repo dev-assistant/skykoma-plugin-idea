@@ -98,9 +98,8 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         List<ModuleDto> moduleDtos = parseModulesDto(project);
         projectInfoDto.setModules(moduleDtos);
         // scanAllFiles
-        scanAllFiles();
         if (autoUpload) {
-            uploadProjectInfo();
+            doUpload(true);
         }
         return projectInfoDto;
     }
@@ -133,26 +132,18 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
 
     @Override
     public ProjectInfoDto uploadProjectInfo() {
-        Project project = projectInfoDto.getProject();
-        assert project != null;
-        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
-        boolean dataServerEnabled = propertiesComponent.getBoolean(SkykomaConstants.DATA_SERVER_ENABLED, false);
-        if (!dataServerEnabled) {
-            LOGGER.info("updateProjectInfo failed, dataServerEnabled is false");
-            return null;
-        }
-        String projectKey = queryProjectKey(projectInfoDto);
-        if (StringUtils.isEmpty(projectKey)) {
-            LOGGER.error(
-                    String.format("uploadProjectInfo error, projectKey empty, path = [%s]", project.getBasePath()));
-            return null;
+        return updateProjectInfo(false);
+    }
+
+    private void doUpload(boolean scan) {
+        if (scan) {
+            scanAllFiles();
         }
         String scanId = projectInfoDto.getScanId();
         UploadProjectPayload payload = new UploadProjectPayload(projectInfoDto);
         payload.setScanId(scanId);
         payload.setProjectInfoDto(projectInfoDto);
         ProjectInfoDto result = uploadProjectInfoToServer(payload);
-        return projectInfoDto;
     }
 
     @NotNull
@@ -185,7 +176,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         return moduleDto;
     }
 
-    private void scanAllFiles() {
+    public void scanAllFiles() {
         Project project = projectInfoDto.getProject();
         PsiManager psiManager = PsiManager.getInstance(project);
         VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();

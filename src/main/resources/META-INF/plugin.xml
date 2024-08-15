@@ -37,6 +37,10 @@
                 text="Skykoma: Upload Project Info">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <action class="cn.hylstudio.skykoma.plugin.idea.action.TestAction" id="TestAction"
+                text="Skykoma: Test">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
         <!-- <action class="cn.hylstudio.skykoma.plugin.idea.action.ShowScriptingEditorAction" id="ShowScriptEditorAction"
                 text="Skykoma: IDE Scripting Console">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
