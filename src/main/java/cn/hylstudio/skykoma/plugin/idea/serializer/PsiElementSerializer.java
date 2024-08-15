@@ -7,7 +7,9 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTypesUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.reflect.MethodUtils;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
@@ -41,27 +43,43 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
             }
         }
         jsonObject.add("childElements", childElementsJsonArray);
-        //序列化特定的节点
-        if (psiElement instanceof PsiClass) {
-            jsonObject.addProperty("psiType", "Class");
-            processPsiClass(currentFile, (PsiClass) psiElement, jsonSerializationContext, jsonObject);
-        } else if (psiElement instanceof PsiAnnotation) {
-            jsonObject.addProperty("psiType", "Annotation");
-            processPsiAnnotation(currentFile, (PsiAnnotation) psiElement, jsonSerializationContext, jsonObject);
-        } else if (psiElement instanceof PsiField) {
-            jsonObject.addProperty("psiType", "Field");
-            processPsiField(currentFile, (PsiField) psiElement, jsonSerializationContext, jsonObject);
-        } else if (psiElement instanceof PsiIdentifier) {
-            jsonObject.addProperty("psiType", "Identifier");
-            processPsiIdentifier(currentFile, (PsiIdentifier) psiElement, jsonSerializationContext, jsonObject);
-        } else if (psiElement instanceof PsiExpression) {
-            jsonObject.addProperty("psiType", "Expression");
-            processPsiExpression(currentFile, (PsiExpression) psiElement, jsonSerializationContext, jsonObject);
-        } else {
-            jsonObject.addProperty("psiType", "unknown");
-        }
-        return jsonObject;
+        Class<? extends PsiElement> clazz = psiElement.getClass();
+        jsonObject.addProperty("className", clazz.getName());
+        JsonObject props = new JsonObject();
+        Method[] methods = clazz.getDeclaredMethods();
+        for (Method method : methods) {
+            Method accessibleMethod = MethodUtils.getAccessibleMethod(method);
+            if (accessibleMethod == null) {
+                continue;
+            }
+            try {
+                Object result = method.invoke(psiElement);
+                props.addProperty(method.getName(), String.valueOf(result));
+            } catch (Exception e) {
 
+            }
+        }
+        jsonObject.add("props", props);
+        //序列化特定的节点
+//        if (psiElement instanceof PsiClass) {
+//            jsonObject.addProperty("psiType", "Class");
+//            processPsiClass(currentFile, (PsiClass) psiElement, jsonSerializationContext, jsonObject);
+//        } else if (psiElement instanceof PsiAnnotation) {
+//            jsonObject.addProperty("psiType", "Annotation");
+//            processPsiAnnotation(currentFile, (PsiAnnotation) psiElement, jsonSerializationContext, jsonObject);
+//        } else if (psiElement instanceof PsiField) {
+//            jsonObject.addProperty("psiType", "Field");
+//            processPsiField(currentFile, (PsiField) psiElement, jsonSerializationContext, jsonObject);
+//        } else if (psiElement instanceof PsiIdentifier) {
+//            jsonObject.addProperty("psiType", "Identifier");
+//            processPsiIdentifier(currentFile, (PsiIdentifier) psiElement, jsonSerializationContext, jsonObject);
+//        } else if (psiElement instanceof PsiExpression) {
+//            jsonObject.addProperty("psiType", "Expression");
+//            processPsiExpression(currentFile, (PsiExpression) psiElement, jsonSerializationContext, jsonObject);
+//        } else {
+//            jsonObject.addProperty("psiType", "unknown");
+//        }
+        return jsonObject;
     }
 
     private void processPsiClass(PsiFile currentFile, PsiClass psiClass, JsonSerializationContext jsonSerializationContext, JsonObject jsonObject) {

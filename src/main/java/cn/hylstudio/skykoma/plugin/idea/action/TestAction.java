@@ -29,7 +29,7 @@ public class TestAction extends AnAction {
                 Application application = ApplicationManager.getApplication();
                 application.runReadAction(() -> {
                     IProjectInfoService projectService = project.getService(IProjectInfoService.class);
-                    projectService.scanAllFiles();
+                    projectService.doScan(false);
                 });
                 indicator.setFraction(1.0);
                 // 耗时操作完成

@@ -70,6 +70,9 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
     public ProjectInfoDto updateProjectInfo(boolean autoUpload) {
         Project project = projectInfoDto.getProject();
         assert project != null;
+        if (!autoUpload) {
+            return projectInfoDto;
+        }
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
         boolean dataServerEnabled = propertiesComponent.getBoolean(SkykomaConstants.DATA_SERVER_ENABLED, false);
         if (!dataServerEnabled) {
@@ -82,25 +85,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             return null;
         }
         projectInfoDto.setKey(projectKey);
-        String scanId = genScanId(projectKey);
-        projectInfoDto.setScanId(scanId);
-        long scanTs = System.currentTimeMillis();
-        projectInfoDto.setLastScanTs(scanTs);
-        String basePath = project.getBasePath();
-        assert basePath != null;
-        File rootFolder = new File(basePath);
-        // vcs info
-        FileDto rootFolderDto = parseRootFolder(rootFolder);
-        projectInfoDto.setRootFolder(rootFolderDto);
-        VCSEntityDto vcsEntityDto = parseVcsEntityDto(rootFolderDto);
-        projectInfoDto.setVcsEntityDto(vcsEntityDto);
-        // modules
-        List<ModuleDto> moduleDtos = parseModulesDto(project);
-        projectInfoDto.setModules(moduleDtos);
-        // scanAllFiles
-        if (autoUpload) {
-            doUpload(true);
-        }
+        doScan(true);
         return projectInfoDto;
     }
 
@@ -130,16 +115,33 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         return rootFolderDto;
     }
 
-    @Override
-    public ProjectInfoDto uploadProjectInfo() {
-        return updateProjectInfo(false);
-    }
+//    @Override
+//    public ProjectInfoDto uploadProjectInfo() {
+//        return updateProjectInfo(false);
+//    }
 
-    private void doUpload(boolean scan) {
-        if (scan) {
-            scanAllFiles();
+    public void doScan(boolean autoUpload) {
+        Project project = projectInfoDto.getProject();
+        String scanId = genScanId();
+        projectInfoDto.setScanId(scanId);
+        // scanAllFiles
+        long scanTs = System.currentTimeMillis();
+        projectInfoDto.setLastScanTs(scanTs);
+        String basePath = project.getBasePath();
+        assert basePath != null;
+        File rootFolder = new File(basePath);
+        // vcs info
+        FileDto rootFolderDto = parseRootFolder(rootFolder);
+        projectInfoDto.setRootFolder(rootFolderDto);
+        VCSEntityDto vcsEntityDto = parseVcsEntityDto(rootFolderDto);
+        projectInfoDto.setVcsEntityDto(vcsEntityDto);
+        // modules
+        List<ModuleDto> moduleDtos = parseModulesDto(project);
+        projectInfoDto.setModules(moduleDtos);
+        scanAllFiles();
+        if (!autoUpload) {
+            return;
         }
-        String scanId = projectInfoDto.getScanId();
         UploadProjectPayload payload = new UploadProjectPayload(projectInfoDto);
         payload.setScanId(scanId);
         payload.setProjectInfoDto(projectInfoDto);
@@ -176,7 +178,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         return moduleDto;
     }
 
-    public void scanAllFiles() {
+    private void scanAllFiles() {
         Project project = projectInfoDto.getProject();
         PsiManager psiManager = PsiManager.getInstance(project);
         VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();
@@ -194,7 +196,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
     }
 
     private void scanFileRecursively(FileDto fileDto, VirtualFileManager virtualFileManager,
-            PsiManager psiManager, Set<String> srcRelativePaths) {
+                                     PsiManager psiManager, Set<String> srcRelativePaths) {
         String type = fileDto.getType();
         if (type.equals("folder")) {
             fileDto.getSubFiles()
@@ -206,7 +208,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
     }
 
     private void scanOneFile(FileDto fileDto, VirtualFileManager virtualFileManager,
-            PsiManager psiManager, Set<String> srcRelativePaths) {
+                             PsiManager psiManager, Set<String> srcRelativePaths) {
         File file = fileDto.getFile();
         Path path = file.toPath();
         LOGGER.info(String.format("scanOneFile, scanning file = [%s]", path));
@@ -290,7 +292,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         return projectInfoDtoFromServer.getKey();
     }
 
-    private String genScanId(String projectKey) {
+    private String genScanId() {
         return UUID.randomUUID().toString().replaceAll("-", "");
     }
 
