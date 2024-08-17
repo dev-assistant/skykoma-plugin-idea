@@ -87,9 +87,8 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             LOGGER.error(String.format("parseProjectInfo error, projectKey empty, path = [%s]", project.getBasePath()));
             return null;
         }
-        int threads = propertiesComponent.getInt(SkykomaConstants.DATA_SERVER_UPLOAD_THREADS, 16);
         projectInfoDto.setKey(projectKey);
-        doScan(true, threads);
+        doScan(true);
         return projectInfoDto;
     }
 
@@ -124,8 +123,11 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
 //        return updateProjectInfo(false);
 //    }
 
-    public void doScan(boolean autoUpload, int threads) {
+    @Override
+    public void doScan(boolean autoUpload) {
         long begin = System.currentTimeMillis();
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        int threads = propertiesComponent.getInt(SkykomaConstants.DATA_SERVER_UPLOAD_THREADS, 16);
         Project project = projectInfoDto.getProject();
         String scanId = genScanId();
         projectInfoDto.setScanId(scanId);
@@ -155,22 +157,9 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             ProjectInfoDto result = uploadProjectBasicInfoToServer(payload);
             waitScanStatus(scanId, null, ScanRecordDto.STATUS_UPLOADED);
         }
-        ExecutorService executorService = Executors.newFixedThreadPool(threads);
+//        ExecutorService executorService = Executors.newFixedThreadPool(threads);
         updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_SCANNING));
-        scanAllFiles(fileDto -> {
-            if (autoUpload) {
-                executorService.execute(() -> {
-                    String relativePath = fileDto.getRelativePath();
-                    updateScanStatus(new UpdateScanStatusPayload(scanId, relativePath, ScanRecordDto.STATUS_SCANNING));
-                    UploadProjectFileInfoPayload payload = new UploadProjectFileInfoPayload(scanId, fileDto);
-                    FileDto result = uploadProjectFileInfoToServer(payload);
-                    waitScanStatus(scanId, relativePath, ScanRecordDto.STATUS_SCANNED);
-                });
-            }
-        });
-        updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_FINISHED));
-        long dur = System.currentTimeMillis() - begin;
-        SkykomaNotifier.notifyInfo(String.format("scan finished, scanId = %s, project = %s, dur = %sms", scanId, project.getName(), dur));
+        scanAllFiles(scanId, begin, autoUpload);
     }
 
 
@@ -204,7 +193,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         return moduleDto;
     }
 
-    private void scanAllFiles(Consumer<FileDto> fileDtoConsumer) {
+    private void scanAllFiles(String scanId, long begin, boolean autoUpload) {
         FileDto rootFolder = projectInfoDto.getRootFolder();
         List<ModuleDto> modules = projectInfoDto.getModules();
         Set<String> srcType = Sets.newHashSet("src", "testSrc");
@@ -221,19 +210,27 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         Project project = projectInfoDto.getProject();
         PsiManager psiManager = PsiManager.getInstance(project);
         VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();
-        for (int i = 0; i < scanTasks.size(); i++) {
-            FileDto fileDto = scanTasks.get(i);
-            info(LOGGER, String.format("scanOneFile file = [%s], begin %s/%s", fileDto.getName(), i + 1, scanTasks.size()));
+        scanTasks.parallelStream().forEach(fileDto-> {
+            info(LOGGER, String.format("scanOneFile file = [%s], begin %s/%s", fileDto.getName(), scanTasks.indexOf(fileDto) + 1, scanTasks.size()));
             long begin1 = System.currentTimeMillis();
             scanOneFile(fileDto, virtualFileManager, psiManager, srcRelativePaths);
-            info(LOGGER, String.format("scanOneFile file = [%s], end %s/%s, dur = %sms", fileDto.getName(), i + 1, scanTasks.size(), System.currentTimeMillis() - begin1));
+            info(LOGGER, String.format("scanOneFile file = [%s], end %s/%s, dur = %sms", fileDto.getName(), scanTasks.indexOf(fileDto) + 1, scanTasks.size(), System.currentTimeMillis() - begin1));
             if (StringUtils.isBlank(fileDto.getPsiFileJson())) {
-                continue;
+                return;
             }
             long begin2 = System.currentTimeMillis();
-            fileDtoConsumer.accept(fileDto);
-            info(LOGGER, String.format("scanOneFile file = [%s], callback end %s/%s, dur = %sms", fileDto.getName(), i + 1, scanTasks.size(), System.currentTimeMillis() - begin2));
-        }
+            info(LOGGER, String.format("scanOneFile file = [%s], callback end %s/%s, dur = %sms", fileDto.getName(), scanTasks.indexOf(fileDto) + 1, scanTasks.size(), System.currentTimeMillis() - begin2));
+            if (autoUpload) {
+                String relativePath = fileDto.getRelativePath();
+                updateScanStatus(new UpdateScanStatusPayload(scanId, relativePath, ScanRecordDto.STATUS_SCANNING));
+                UploadProjectFileInfoPayload payload = new UploadProjectFileInfoPayload(scanId, fileDto);
+                FileDto result = uploadProjectFileInfoToServer(payload);
+                waitScanStatus(scanId, relativePath, ScanRecordDto.STATUS_SCANNED);
+            }
+        });
+        long dur = System.currentTimeMillis() - begin;
+        updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_FINISHED));
+        SkykomaNotifier.notifyInfo(String.format("scan finished, scanId = %s, project = %s, dur = %sms", scanId, project.getName(), dur));
     }
 
     private void genFileScanTasks(FileDto fileDto, List<FileDto> scanTasks) {
