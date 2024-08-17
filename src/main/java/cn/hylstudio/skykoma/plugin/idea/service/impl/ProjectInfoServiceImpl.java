@@ -222,6 +222,9 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             long begin1 = System.currentTimeMillis();
             scanOneFile(fileDto, virtualFileManager, psiManager, srcRelativePaths);
             info(LOGGER, String.format("scanOneFile file = [%s], end %s/%s, dur = %sms",fileDto.getName(), i + 1, scanTasks.size(), System.currentTimeMillis() - begin1));
+            if (StringUtils.isBlank(fileDto.getPsiFileJson())) {
+                continue;
+            }
             long begin2 = System.currentTimeMillis();
             fileDtoConsumer.accept(fileDto);
             info(LOGGER, String.format("scanOneFile file = [%s], callback end %s/%s, dur = %sms",fileDto.getName(), i + 1, scanTasks.size(), System.currentTimeMillis() - begin2));
