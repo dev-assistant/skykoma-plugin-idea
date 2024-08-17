@@ -33,14 +33,17 @@ import java.io.File;
 import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static cn.hylstudio.skykoma.plugin.idea.util.GsonUtils.GSON;
 import static cn.hylstudio.skykoma.plugin.idea.util.GsonUtils.PSI_GSON;
+import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.error;
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.info;
 
 public class ProjectInfoServiceImpl implements IProjectInfoService {
@@ -87,9 +90,8 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             LOGGER.error(String.format("parseProjectInfo error, projectKey empty, path = [%s]", project.getBasePath()));
             return null;
         }
-        int threads = propertiesComponent.getInt(SkykomaConstants.DATA_SERVER_UPLOAD_THREADS, 16);
         projectInfoDto.setKey(projectKey);
-        doScan(true, threads);
+        doScan(true);
         return projectInfoDto;
     }
 
@@ -124,7 +126,10 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
 //        return updateProjectInfo(false);
 //    }
 
-    public void doScan(boolean autoUpload, int threads) {
+    @Override
+    public void doScan(boolean autoUpload) {
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        int threads = propertiesComponent.getInt(SkykomaConstants.DATA_SERVER_UPLOAD_THREADS, 16);
         long begin = System.currentTimeMillis();
         Project project = projectInfoDto.getProject();
         String scanId = genScanId();
@@ -157,17 +162,24 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         }
         ExecutorService executorService = Executors.newFixedThreadPool(threads);
         updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_SCANNING));
-        scanAllFiles(fileDto -> {
-            if (autoUpload) {
-                executorService.execute(() -> {
-                    String relativePath = fileDto.getRelativePath();
-                    updateScanStatus(new UpdateScanStatusPayload(scanId, relativePath, ScanRecordDto.STATUS_SCANNING));
-                    UploadProjectFileInfoPayload payload = new UploadProjectFileInfoPayload(scanId, fileDto);
-                    FileDto result = uploadProjectFileInfoToServer(payload);
-                    waitScanStatus(scanId, relativePath, ScanRecordDto.STATUS_SCANNED);
-                });
-            }
-        });
+        List<FileDto> neededUpload = new ArrayList<>();
+        scanAllFiles(fileDto -> neededUpload.add(fileDto));
+        CountDownLatch countDownLatch = new CountDownLatch(neededUpload.size());
+        if (autoUpload) {
+            neededUpload.forEach(fileDto -> executorService.execute(() -> {
+                String relativePath = fileDto.getRelativePath();
+                updateScanStatus(new UpdateScanStatusPayload(scanId, relativePath, ScanRecordDto.STATUS_SCANNING));
+                UploadProjectFileInfoPayload payload = new UploadProjectFileInfoPayload(scanId, fileDto);
+                FileDto result = uploadProjectFileInfoToServer(payload);
+                waitScanStatus(scanId, relativePath, ScanRecordDto.STATUS_SCANNED);
+                countDownLatch.countDown();
+            }));
+        }
+        try {
+            countDownLatch.await();
+        } catch (Exception e) {
+            error(LOGGER, String.format("await error, e = %s", e.getMessage()), e);
+        }
         updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_FINISHED));
         long dur = System.currentTimeMillis() - begin;
         SkykomaNotifier.notifyInfo(String.format("scan finished, scanId = %s, project = %s, dur = %sms", scanId, project.getName(), dur));
