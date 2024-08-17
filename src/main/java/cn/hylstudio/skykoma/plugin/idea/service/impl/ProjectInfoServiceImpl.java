@@ -3,8 +3,8 @@ package cn.hylstudio.skykoma.plugin.idea.service.impl;
 import cn.hylstudio.skykoma.plugin.idea.SkykomaConstants;
 import cn.hylstudio.skykoma.plugin.idea.model.*;
 import cn.hylstudio.skykoma.plugin.idea.model.payload.ProjectInfoQueryPayload;
-import com.intellij.ide.util.PropertiesComponent;
-import cn.hylstudio.skykoma.plugin.idea.model.payload.UploadProjectPayload;
+import cn.hylstudio.skykoma.plugin.idea.model.payload.UploadProjectBasicInfoPayload;
+import cn.hylstudio.skykoma.plugin.idea.model.payload.UploadProjectFileInfoPayload;
 import cn.hylstudio.skykoma.plugin.idea.model.result.BizCode;
 import cn.hylstudio.skykoma.plugin.idea.model.result.JsonResult;
 import cn.hylstudio.skykoma.plugin.idea.service.IHttpService;
@@ -12,6 +12,7 @@ import cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.reflect.TypeToken;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
@@ -34,6 +35,7 @@ import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static cn.hylstudio.skykoma.plugin.idea.util.GsonUtils.GSON;
@@ -138,15 +140,16 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         // modules
         List<ModuleDto> moduleDtos = parseModulesDto(project);
         projectInfoDto.setModules(moduleDtos);
-        scanAllFiles();
-        if (!autoUpload) {
-            return;
+        if (autoUpload) {
+            UploadProjectBasicInfoPayload payload = new UploadProjectBasicInfoPayload(scanId, projectInfoDto);
+            ProjectInfoDto result = uploadProjectBasicInfoToServer(payload);
         }
-        UploadProjectPayload payload = new UploadProjectPayload(projectInfoDto);
-        payload.setScanId(scanId);
-        payload.setProjectInfoDto(projectInfoDto);
-        ProjectInfoDto result = uploadProjectInfoToServer(payload);
+        scanAllFiles(autoUpload, fileDto -> {
+            UploadProjectFileInfoPayload payload = new UploadProjectFileInfoPayload(scanId, fileDto);
+            FileDto result = uploadProjectFileInfoToServer(payload);
+        });
     }
+
 
     @NotNull
     private List<ModuleDto> parseModulesDto(Project project) {
@@ -178,10 +181,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         return moduleDto;
     }
 
-    private void scanAllFiles() {
-        Project project = projectInfoDto.getProject();
-        PsiManager psiManager = PsiManager.getInstance(project);
-        VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();
+    private void scanAllFiles(boolean autoUpload, Consumer<FileDto> fileDtoConsumer) {
         FileDto rootFolder = projectInfoDto.getRootFolder();
         List<ModuleDto> modules = projectInfoDto.getModules();
         Set<String> srcType = Sets.newHashSet("src", "testSrc");
@@ -192,17 +192,34 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
                 .map(ModuleRootDto::getFolders)
                 .reduce(mergeList()).orElse(Collections.emptyList())
                 .stream().map(FileDto::getRelativePath).collect(Collectors.toSet());
-        scanFileRecursively(rootFolder, virtualFileManager, psiManager, srcRelativePaths);
+        List<FileDto> scanTasks = new ArrayList<>();
+        genFileScanTasks(rootFolder, scanTasks);
+        LOGGER.info(String.format("genFileScanTasks finished, fileCount = [%s]", scanTasks.size()));
+        Project project = projectInfoDto.getProject();
+        PsiManager psiManager = PsiManager.getInstance(project);
+        VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();
+        for (int i = 0; i < scanTasks.size(); i++) {
+            FileDto fileDto = scanTasks.get(i);
+            LOGGER.info(String.format("scanOneFile begin %s/%s", i + 1, scanTasks.size()));
+            scanOneFile(fileDto, virtualFileManager, psiManager, srcRelativePaths);
+            LOGGER.info(String.format("scanOneFile end %s/%s", i + 1, scanTasks.size()));
+            if (!autoUpload) {
+                LOGGER.info(String.format("scanOneFile skip upload %s/%s", i + 1, scanTasks.size()));
+                continue;
+            }
+            LOGGER.info(String.format("scanOneFile upload begin %s/%s", i + 1, scanTasks.size()));
+            fileDtoConsumer.accept(fileDto);
+            LOGGER.info(String.format("scanOneFile upload end %s/%s", i + 1, scanTasks.size()));
+        }
     }
 
-    private void scanFileRecursively(FileDto fileDto, VirtualFileManager virtualFileManager,
-                                     PsiManager psiManager, Set<String> srcRelativePaths) {
+    private void genFileScanTasks(FileDto fileDto, List<FileDto> scanTasks) {
         String type = fileDto.getType();
         if (type.equals("folder")) {
             fileDto.getSubFiles()
-                    .forEach(v -> scanFileRecursively(v, virtualFileManager, psiManager, srcRelativePaths));
+                    .forEach(v -> genFileScanTasks(v, scanTasks));
         } else if (type.equals("file")) {
-            scanOneFile(fileDto, virtualFileManager, psiManager, srcRelativePaths);
+            scanTasks.add(fileDto);
         } else {
         }
     }
@@ -296,7 +313,8 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         return UUID.randomUUID().toString().replaceAll("-", "");
     }
 
-    private static final String UPDATE_PROJECT_API = "%s/api/project/updateProjectInfo";
+    private static final String UPDATE_PROJECT_BASIC_INFO_API = "%s/api/project/updateProjectBasicInfo";
+    private static final String UPDATE_PROJECT_FILE_INFO_API = "%s/api/project/updateProjectFileInfo";
     private static final String QUERY_PROJECT_API = "%s/api/project/queryProjectInfo";
 
     // TODO move to api service
@@ -355,7 +373,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         return data;
     }
 
-    private ProjectInfoDto uploadProjectInfoToServer(UploadProjectPayload payload) {
+    private ProjectInfoDto uploadProjectBasicInfoToServer(UploadProjectBasicInfoPayload payload) {
         String requestJson = GSON.toJson(payload);
         // System.out.println(requestJson);
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
@@ -363,30 +381,68 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         if (StringUtils.isEmpty(apiHost)) {
             return null;
         }
-        String url = String.format(UPDATE_PROJECT_API, apiHost);
+        String url = String.format(UPDATE_PROJECT_BASIC_INFO_API, apiHost);
         Type type = new TypeToken<JsonResult<ProjectInfoDto>>() {
         }.getType();
         String responseJson = httpService.postJsonBody(url, requestJson);
-        LOGGER.info(String.format("upload projectInfo, responseJson = [%s]", responseJson));
+        LOGGER.info(String.format("upload projectBasicInfo, responseJson = [%s]", responseJson));
         if (StringUtils.isEmpty(responseJson)) {
-            LOGGER.error("upload projectInfo failed, response is empty");
+            LOGGER.error("upload projectBasicInfo failed, response is empty");
             return null;
         }
         JsonResult<ProjectInfoDto> respone = null;
         try {
             respone = GSON.fromJson(responseJson, type);
         } catch (Exception e) {
-            LOGGER.error(String.format("upload projectInfo failed, response format error1, responseJson = [%s]",
+            LOGGER.error(String.format("upload projectBasicInfo failed, response format error1, responseJson = [%s]",
                     responseJson), e);
             return null;
         }
         if (respone == null) {
-            LOGGER.error(String.format("upload projectInfo failed, response format error2, data = [%s]", responseJson));
+            LOGGER.error(String.format("upload projectBasicInfo failed, response format error2, data = [%s]", responseJson));
             return null;
         }
         String code = respone.getCode();
         if (code == null) {
-            LOGGER.error(String.format("upload projectInfo failed, response format error3, code missing, data = [%s]",
+            LOGGER.error(String.format("upload projectBasicInfo failed, response format error3, code missing, data = [%s]",
+                    responseJson));
+            return null;
+        }
+        return respone.getData();
+    }
+
+    private FileDto uploadProjectFileInfoToServer(UploadProjectFileInfoPayload payload) {
+        String requestJson = GSON.toJson(payload);
+        // System.out.println(requestJson);
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        String apiHost = propertiesComponent.getValue(SkykomaConstants.DATA_SERVER_API_HOST);
+        if (StringUtils.isEmpty(apiHost)) {
+            return null;
+        }
+        String url = String.format(UPDATE_PROJECT_FILE_INFO_API, apiHost);
+        Type type = new TypeToken<JsonResult<FileDto>>() {
+        }.getType();
+        String responseJson = httpService.postJsonBody(url, requestJson);
+        LOGGER.info(String.format("upload projectFileInfo, responseJson = [%s]", responseJson));
+        if (StringUtils.isEmpty(responseJson)) {
+            LOGGER.error("upload projectFileInfo failed, response is empty");
+            return null;
+        }
+        JsonResult<FileDto> respone = null;
+        try {
+            respone = GSON.fromJson(responseJson, type);
+        } catch (Exception e) {
+            LOGGER.error(String.format("upload projectFileInfo failed, response format error1, responseJson = [%s]",
+                    responseJson), e);
+            return null;
+        }
+        if (respone == null) {
+            LOGGER.error(String.format("upload projectFileInfo failed, response format error2, data = [%s]", responseJson));
+            return null;
+        }
+        String code = respone.getCode();
+        if (code == null) {
+            LOGGER.error(String.format("upload projectFileInfo failed, response format error3, code missing, data = [%s]",
                     responseJson));
             return null;
         }
