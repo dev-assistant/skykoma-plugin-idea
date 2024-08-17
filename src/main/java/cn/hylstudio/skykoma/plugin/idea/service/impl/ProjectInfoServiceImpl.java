@@ -7,6 +7,7 @@ import cn.hylstudio.skykoma.plugin.idea.model.result.BizCode;
 import cn.hylstudio.skykoma.plugin.idea.model.result.JsonResult;
 import cn.hylstudio.skykoma.plugin.idea.service.IHttpService;
 import cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService;
+import cn.hylstudio.skykoma.plugin.idea.util.SkykomaNotifier;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.reflect.TypeToken;
@@ -123,6 +124,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
 //    }
 
     public void doScan(boolean autoUpload) {
+        long begin = System.currentTimeMillis();
         Project project = projectInfoDto.getProject();
         String scanId = genScanId();
         projectInfoDto.setScanId(scanId);
@@ -166,6 +168,8 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             }
         });
         updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_FINISHED));
+        long dur = System.currentTimeMillis() - begin;
+        SkykomaNotifier.notifyInfo(String.format("scan finished, scanId = %s, project = %s, dur = %sms", scanId, project.getName(), dur));
     }
 
 
@@ -221,13 +225,13 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             info(LOGGER, String.format("scanOneFile file = [%s], begin %s/%s", fileDto.getName(), i + 1, scanTasks.size()));
             long begin1 = System.currentTimeMillis();
             scanOneFile(fileDto, virtualFileManager, psiManager, srcRelativePaths);
-            info(LOGGER, String.format("scanOneFile file = [%s], end %s/%s, dur = %sms",fileDto.getName(), i + 1, scanTasks.size(), System.currentTimeMillis() - begin1));
+            info(LOGGER, String.format("scanOneFile file = [%s], end %s/%s, dur = %sms", fileDto.getName(), i + 1, scanTasks.size(), System.currentTimeMillis() - begin1));
             if (StringUtils.isBlank(fileDto.getPsiFileJson())) {
                 continue;
             }
             long begin2 = System.currentTimeMillis();
             fileDtoConsumer.accept(fileDto);
-            info(LOGGER, String.format("scanOneFile file = [%s], callback end %s/%s, dur = %sms",fileDto.getName(), i + 1, scanTasks.size(), System.currentTimeMillis() - begin2));
+            info(LOGGER, String.format("scanOneFile file = [%s], callback end %s/%s, dur = %sms", fileDto.getName(), i + 1, scanTasks.size(), System.currentTimeMillis() - begin2));
         }
     }
 
