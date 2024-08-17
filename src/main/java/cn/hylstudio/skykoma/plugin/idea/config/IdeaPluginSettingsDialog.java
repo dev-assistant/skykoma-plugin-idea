@@ -51,7 +51,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
 
         container.add(new JLabel("Skykoma Config"), BorderLayout.NORTH);
 
-        GridLayout gridLayout = new GridLayout(14, 2);
+        GridLayout gridLayout = new GridLayout(15, 2);
         JPanel panel = new JPanel(gridLayout);
         container.add(panel, BorderLayout.CENTER);
 
