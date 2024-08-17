@@ -75,6 +75,16 @@ public class IdeaPluginSettingsDialog implements Configurable {
         panel.add(threadsField);
         threadsField.setText(propertiesComponent.getValue(DATA_SERVER_UPLOAD_THREADS, ""));
 
+        panel.add(new JLabel("Agent Server Listen Address"));
+        agentServerListenAddress = new JTextField();
+        panel.add(agentServerListenAddress);
+        agentServerListenAddress.setText(propertiesComponent.getValue(AGENT_SERVER_LISTEN_ADDRESS, AGENT_SERVER_LISTEN_ADDRESS_DEFAULT));
+
+        panel.add(new JLabel("Agent Server Listen Port"));
+        agentServerListenPort = new JTextField();
+        panel.add(agentServerListenPort);
+        agentServerListenPort.setText(String.valueOf(propertiesComponent.getInt(AGENT_SERVER_LISTEN_PORT, AGENT_SERVER_LISTEN_PORT_DEFAULT)));
+
         IdeaPluginAgentServer ideaPluginAgentServer =
                 ApplicationManager.getApplication().getService(IdeaPluginAgentServer.class);
         panel.add(new JLabel("Agent Server Control"));
@@ -88,16 +98,6 @@ public class IdeaPluginSettingsDialog implements Configurable {
         btnStopAgentServer.addActionListener(e -> ideaPluginAgentServer.stop());
         btnRestartAgentServer.addActionListener(e -> ideaPluginAgentServer.restart());
         btnRegisterKernel.addActionListener(e -> ideaPluginAgentServer.registerAsJupyterKernel());
-
-        panel.add(new JLabel("Agent Server Listen Address"));
-        agentServerListenAddress = new JTextField();
-        panel.add(agentServerListenAddress);
-        agentServerListenAddress.setText(propertiesComponent.getValue(AGENT_SERVER_LISTEN_ADDRESS, AGENT_SERVER_LISTEN_ADDRESS_DEFAULT));
-
-        panel.add(new JLabel("Agent Server Listen Port"));
-        agentServerListenPort = new JTextField();
-        panel.add(agentServerListenPort);
-        agentServerListenPort.setText(String.valueOf(propertiesComponent.getInt(AGENT_SERVER_LISTEN_PORT, AGENT_SERVER_LISTEN_PORT_DEFAULT)));
 
         panel.add(new JLabel("Jupyter Kernel Name"));
         jupyterKernelName = new JTextField();
