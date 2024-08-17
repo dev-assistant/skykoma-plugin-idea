@@ -8,7 +8,5 @@ public interface IProjectInfoService {
 
     ProjectInfoDto updateProjectInfo(boolean autoUpload);
 
-//    ProjectInfoDto uploadProjectInfo();
-
     void doScan(boolean autoUpload);
 }

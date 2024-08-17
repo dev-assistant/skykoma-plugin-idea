@@ -2,9 +2,7 @@ package cn.hylstudio.skykoma.plugin.idea.service.impl;
 
 import cn.hylstudio.skykoma.plugin.idea.SkykomaConstants;
 import cn.hylstudio.skykoma.plugin.idea.model.*;
-import cn.hylstudio.skykoma.plugin.idea.model.payload.ProjectInfoQueryPayload;
-import cn.hylstudio.skykoma.plugin.idea.model.payload.UploadProjectBasicInfoPayload;
-import cn.hylstudio.skykoma.plugin.idea.model.payload.UploadProjectFileInfoPayload;
+import cn.hylstudio.skykoma.plugin.idea.model.payload.*;
 import cn.hylstudio.skykoma.plugin.idea.model.result.BizCode;
 import cn.hylstudio.skykoma.plugin.idea.model.result.JsonResult;
 import cn.hylstudio.skykoma.plugin.idea.service.IHttpService;
@@ -34,6 +32,8 @@ import java.io.File;
 import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -81,7 +81,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             info(LOGGER, "updateProjectInfo failed, dataServerEnabled is false");
             return null;
         }
-        String projectKey = queryProjectKey(projectInfoDto);
+        String projectKey = queryOrCreateProjectKey(projectInfoDto);
         if (StringUtils.isEmpty(projectKey)) {
             LOGGER.error(String.format("parseProjectInfo error, projectKey empty, path = [%s]", project.getBasePath()));
             return null;
@@ -126,6 +126,13 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         Project project = projectInfoDto.getProject();
         String scanId = genScanId();
         projectInfoDto.setScanId(scanId);
+        if (autoUpload) {
+            ScanRecordDto scanRecordDto = beginScan(new BeginScanPayload(scanId, projectInfoDto));
+            if (scanRecordDto == null || !ScanRecordDto.STATUS_INIT.equals(scanRecordDto.getStatus())) {
+                info(LOGGER, String.format("begin scan error, scanRecordDto = %s", scanRecordDto));
+                return;
+            }
+        }
         // scanAllFiles
         long scanTs = System.currentTimeMillis();
         projectInfoDto.setLastScanTs(scanTs);
@@ -143,13 +150,21 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         if (autoUpload) {
             UploadProjectBasicInfoPayload payload = new UploadProjectBasicInfoPayload(scanId, projectInfoDto);
             ProjectInfoDto result = uploadProjectBasicInfoToServer(payload);
+            waitScanStatus(scanId, null, ScanRecordDto.STATUS_UPLOADED);
         }
+        ExecutorService executorService = Executors.newFixedThreadPool(8);
         scanAllFiles(fileDto -> {
             if (autoUpload) {
-                UploadProjectFileInfoPayload payload = new UploadProjectFileInfoPayload(scanId, fileDto);
-                FileDto result = uploadProjectFileInfoToServer(payload);
+                executorService.execute(() -> {
+                    String relativePath = fileDto.getRelativePath();
+                    updateScanStatus(new UpdateScanStatusPayload(scanId, relativePath, ScanRecordDto.STATUS_SCANNING));
+                    UploadProjectFileInfoPayload payload = new UploadProjectFileInfoPayload(scanId, fileDto);
+                    FileDto result = uploadProjectFileInfoToServer(payload);
+                    waitScanStatus(scanId, relativePath, ScanRecordDto.STATUS_SCANNED);
+                });
             }
         });
+        updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_FINISHED));
     }
 
 
@@ -202,13 +217,13 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();
         for (int i = 0; i < scanTasks.size(); i++) {
             FileDto fileDto = scanTasks.get(i);
-            info(LOGGER, String.format("scanOneFile begin %s/%s", i + 1, scanTasks.size()));
+            info(LOGGER, String.format("scanOneFile file = [%s], begin %s/%s", fileDto.getName(), i + 1, scanTasks.size()));
             long begin1 = System.currentTimeMillis();
             scanOneFile(fileDto, virtualFileManager, psiManager, srcRelativePaths);
-            info(LOGGER, String.format("scanOneFile end %s/%s, dur = %sms", i + 1, scanTasks.size(), System.currentTimeMillis() - begin1));
+            info(LOGGER, String.format("scanOneFile file = [%s], end %s/%s, dur = %sms",fileDto.getName(), i + 1, scanTasks.size(), System.currentTimeMillis() - begin1));
             long begin2 = System.currentTimeMillis();
             fileDtoConsumer.accept(fileDto);
-            info(LOGGER, String.format("scanOneFile callback end %s/%s, dur = %sms", i + 1, scanTasks.size(), System.currentTimeMillis() - begin2));
+            info(LOGGER, String.format("scanOneFile file = [%s], callback end %s/%s, dur = %sms",fileDto.getName(), i + 1, scanTasks.size(), System.currentTimeMillis() - begin2));
         }
     }
 
@@ -296,24 +311,27 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         }).collect(Collectors.toList());
     }
 
-    private String queryProjectKey(ProjectInfoDto projectInfoDto) {
-        String key = projectInfoDto.getKey();
-        if (!StringUtils.isEmpty(key)) {
-            return key;
-        }
+    private String queryOrCreateProjectKey(ProjectInfoDto projectInfoDto) {
         ProjectInfoDto projectInfoDtoFromServer = queryProjectKeyFromServer(projectInfoDto);
         if (projectInfoDtoFromServer == null) {
-            return "";
+            return null;
         }
+//        String key = projectInfoDto.getKey();
+//        if (!StringUtils.isEmpty(key)) {
+//            return key;
+//        }
         return projectInfoDtoFromServer.getKey();
     }
 
     private String genScanId() {
-        return UUID.randomUUID().toString().replaceAll("-", "");
+        return System.currentTimeMillis() + "-" + UUID.randomUUID().toString().replaceAll("-", "");
     }
 
     private static final String UPDATE_PROJECT_BASIC_INFO_API = "%s/api/project/updateProjectBasicInfo";
     private static final String UPDATE_PROJECT_FILE_INFO_API = "%s/api/project/updateProjectFileInfo";
+    private static final String QUERY_SCAN_STATUS_API = "%s/api/project/queryScan";
+    private static final String BEGIN_SCAN_STATUS_API = "%s/api/project/beginScan";
+    private static final String UPDATE_SCAN_STATUS_API = "%s/api/project/updateScanStatus";
     private static final String QUERY_PROJECT_API = "%s/api/project/queryProjectInfo";
 
     // TODO move to api service
@@ -422,7 +440,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         Type type = new TypeToken<JsonResult<FileDto>>() {
         }.getType();
         String responseJson = httpService.postJsonBody(url, requestJson);
-        info(LOGGER, String.format("upload projectFileInfo, responseJson = [%s]", responseJson));
+        info(LOGGER, String.format("upload projectFileInfo, file = [%s] responseJson = [%s]", payload.getFileDto().getName(), responseJson));
         if (StringUtils.isEmpty(responseJson)) {
             LOGGER.error("upload projectFileInfo failed, response is empty");
             return null;
@@ -442,6 +460,138 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         String code = respone.getCode();
         if (code == null) {
             LOGGER.error(String.format("upload projectFileInfo failed, response format error3, code missing, data = [%s]",
+                    responseJson));
+            return null;
+        }
+        return respone.getData();
+    }
+
+    private ScanRecordDto beginScan(BeginScanPayload payload) {
+        String requestJson = GSON.toJson(payload);
+        // System.out.println(requestJson);
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        String apiHost = propertiesComponent.getValue(SkykomaConstants.DATA_SERVER_API_HOST);
+        if (StringUtils.isEmpty(apiHost)) {
+            return null;
+        }
+        String url = String.format(BEGIN_SCAN_STATUS_API, apiHost);
+        Type type = new TypeToken<JsonResult<ScanRecordDto>>() {
+        }.getType();
+        String responseJson = httpService.postJsonBody(url, requestJson);
+        info(LOGGER, String.format("beginScan, responseJson = [%s]", responseJson));
+        if (StringUtils.isEmpty(responseJson)) {
+            LOGGER.error("beginScan failed, response is empty");
+            return null;
+        }
+        JsonResult<ScanRecordDto> respone = null;
+        try {
+            respone = GSON.fromJson(responseJson, type);
+        } catch (Exception e) {
+            LOGGER.error(String.format("beginScan failed, response format error1, responseJson = [%s]",
+                    responseJson), e);
+            return null;
+        }
+        if (respone == null) {
+            LOGGER.error(String.format("beginScan failed, response format error2, data = [%s]", responseJson));
+            return null;
+        }
+        String code = respone.getCode();
+        if (code == null) {
+            LOGGER.error(String.format("beginScan failed, response format error3, code missing, data = [%s]",
+                    responseJson));
+            return null;
+        }
+        return respone.getData();
+    }
+
+    private void waitScanStatus(String scanId, String relativePath, String waitStatus) {
+        int n = 0;
+        while (n++ < 100) {
+            ScanRecordDto scanRecordDto = queryScanStatus(new QueryScanPayload(scanId, relativePath));
+            boolean succ = scanRecordDto != null && waitStatus.equals(scanRecordDto.getStatus());
+            info(LOGGER, String.format("waiting for status to %s, times = %s, succ = %s", waitStatus, n, succ));
+            if (succ) {
+                return;
+            }
+            try {
+                Thread.sleep(5000);
+            } catch (Exception e) {
+
+            }
+        }
+        throw new RuntimeException(String.format("wait status to %s timeout", waitStatus));
+    }
+
+    private ScanRecordDto queryScanStatus(QueryScanPayload payload) {
+        String requestJson = GSON.toJson(payload);
+        // System.out.println(requestJson);
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        String apiHost = propertiesComponent.getValue(SkykomaConstants.DATA_SERVER_API_HOST);
+        if (StringUtils.isEmpty(apiHost)) {
+            return null;
+        }
+        String url = String.format(QUERY_SCAN_STATUS_API, apiHost);
+        Type type = new TypeToken<JsonResult<ScanRecordDto>>() {
+        }.getType();
+        String responseJson = httpService.postJsonBody(url, requestJson);
+        info(LOGGER, String.format("queryScanStatus, responseJson = [%s]", responseJson));
+        if (StringUtils.isEmpty(responseJson)) {
+            LOGGER.error("queryScanStatus failed, response is empty");
+            return null;
+        }
+        JsonResult<ScanRecordDto> respone = null;
+        try {
+            respone = GSON.fromJson(responseJson, type);
+        } catch (Exception e) {
+            LOGGER.error(String.format("queryScanStatus failed, response format error1, responseJson = [%s]",
+                    responseJson), e);
+            return null;
+        }
+        if (respone == null) {
+            LOGGER.error(String.format("queryScanStatus failed, response format error2, data = [%s]", responseJson));
+            return null;
+        }
+        String code = respone.getCode();
+        if (code == null) {
+            LOGGER.error(String.format("queryScanStatus failed, response format error3, code missing, data = [%s]",
+                    responseJson));
+            return null;
+        }
+        return respone.getData();
+    }
+
+    private ScanRecordDto updateScanStatus(UpdateScanStatusPayload payload) {
+        String requestJson = GSON.toJson(payload);
+        // System.out.println(requestJson);
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+        String apiHost = propertiesComponent.getValue(SkykomaConstants.DATA_SERVER_API_HOST);
+        if (StringUtils.isEmpty(apiHost)) {
+            return null;
+        }
+        String url = String.format(UPDATE_SCAN_STATUS_API, apiHost);
+        Type type = new TypeToken<JsonResult<ScanRecordDto>>() {
+        }.getType();
+        String responseJson = httpService.postJsonBody(url, requestJson);
+        info(LOGGER, String.format("updateScanStatus, responseJson = [%s]", responseJson));
+        if (StringUtils.isEmpty(responseJson)) {
+            LOGGER.error("updateScanStatus failed, response is empty");
+            return null;
+        }
+        JsonResult<ScanRecordDto> respone = null;
+        try {
+            respone = GSON.fromJson(responseJson, type);
+        } catch (Exception e) {
+            LOGGER.error(String.format("updateScanStatus failed, response format error1, responseJson = [%s]",
+                    responseJson), e);
+            return null;
+        }
+        if (respone == null) {
+            LOGGER.error(String.format("updateScanStatus failed, response format error2, data = [%s]", responseJson));
+            return null;
+        }
+        String code = respone.getCode();
+        if (code == null) {
+            LOGGER.error(String.format("updateScanStatus failed, response format error3, code missing, data = [%s]",
                     responseJson));
             return null;
         }
