@@ -17,7 +17,7 @@ public class BasePsiSerializer {
         jsonObject.addProperty("className", clazz.getName());
         PsiFile containingFile = psiElement.getContainingFile();
         if (containingFile == null) {
-            jsonObject.add("containingFile", null);
+            jsonObject.add("containingFileName", null);
             return;
         }
         String name = containingFile.getName();
@@ -52,9 +52,10 @@ public class BasePsiSerializer {
             return;
         }
         String filePath = virtualFile.getPath();
-        String relativePath = filePath;
+        jsonObject.addProperty("absolutePath", filePath);
         boolean inProject = filePath.startsWith(basePath);
         jsonObject.addProperty("inProject", inProject);
+        String relativePath = "";
         if (inProject) {
             relativePath = filePath.substring(basePath.length());
             if (relativePath.startsWith("\\") || relativePath.startsWith("/")) {
