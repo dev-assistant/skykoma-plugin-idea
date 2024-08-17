@@ -25,7 +25,7 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
         return serializeRecursively(containingFile, psiElement, jsonSerializationContext, 1, 1, visited);
     }
 
-    private JsonObject serializeRecursively(PsiFile currentFile, PsiElement psiElement,
+    private static JsonObject serializeRecursively(PsiFile currentFile, PsiElement psiElement,
                                             JsonSerializationContext jsonSerializationContext,
                                             int elemDepth, int propDepth,
                                             Set<Object> visited) {
@@ -69,7 +69,7 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
         return jsonObject;
     }
 
-    private JsonObject getPsiElementProps(PsiElement psiElement, JsonSerializationContext jsonSerializationContext,
+    public static JsonObject getPsiElementProps(PsiElement psiElement, JsonSerializationContext jsonSerializationContext,
                                           int elemDepth, int propDepth, Set<Object> visited) {
         JsonObject props = new JsonObject();
         if (propDepth > 2) {
@@ -101,7 +101,7 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
         return props;
     }
 
-    private JsonElement convertToJsonElement(PsiFile containingFile, Object obj, JsonSerializationContext jsonSerializationContext,
+    private static JsonElement convertToJsonElement(PsiFile containingFile, Object obj, JsonSerializationContext jsonSerializationContext,
                                              int elementDepth, int propDepth, Set<Object> visited) {
         if (obj == null) {
             return JsonNull.INSTANCE;

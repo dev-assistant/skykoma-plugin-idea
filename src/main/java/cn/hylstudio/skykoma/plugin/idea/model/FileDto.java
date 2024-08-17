@@ -28,7 +28,7 @@ public class FileDto {
         this.absolutePath = file.getPath();
         if (!StringUtils.isEmpty(rootPath)) {
             this.relativePath = file.getPath().substring(rootPath.length());
-            if (this.relativePath.startsWith(File.separator)) {
+            if (this.relativePath.startsWith("/") || this.relativePath.startsWith("\\")) {
                 this.relativePath = this.relativePath.substring(1);
             }
         } else {

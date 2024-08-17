@@ -78,7 +78,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
         boolean dataServerEnabled = propertiesComponent.getBoolean(SkykomaConstants.DATA_SERVER_ENABLED, false);
         if (!dataServerEnabled) {
-            LOGGER.info("updateProjectInfo failed, dataServerEnabled is false");
+            info(LOGGER, "updateProjectInfo failed, dataServerEnabled is false");
             return null;
         }
         String projectKey = queryProjectKey(projectInfoDto);
@@ -144,9 +144,11 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             UploadProjectBasicInfoPayload payload = new UploadProjectBasicInfoPayload(scanId, projectInfoDto);
             ProjectInfoDto result = uploadProjectBasicInfoToServer(payload);
         }
-        scanAllFiles(autoUpload, fileDto -> {
-            UploadProjectFileInfoPayload payload = new UploadProjectFileInfoPayload(scanId, fileDto);
-            FileDto result = uploadProjectFileInfoToServer(payload);
+        scanAllFiles(fileDto -> {
+            if (autoUpload) {
+                UploadProjectFileInfoPayload payload = new UploadProjectFileInfoPayload(scanId, fileDto);
+                FileDto result = uploadProjectFileInfoToServer(payload);
+            }
         });
     }
 
@@ -181,7 +183,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         return moduleDto;
     }
 
-    private void scanAllFiles(boolean autoUpload, Consumer<FileDto> fileDtoConsumer) {
+    private void scanAllFiles(Consumer<FileDto> fileDtoConsumer) {
         FileDto rootFolder = projectInfoDto.getRootFolder();
         List<ModuleDto> modules = projectInfoDto.getModules();
         Set<String> srcType = Sets.newHashSet("src", "testSrc");
@@ -194,22 +196,19 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
                 .stream().map(FileDto::getRelativePath).collect(Collectors.toSet());
         List<FileDto> scanTasks = new ArrayList<>();
         genFileScanTasks(rootFolder, scanTasks);
-        LOGGER.info(String.format("genFileScanTasks finished, fileCount = [%s]", scanTasks.size()));
+        info(LOGGER, String.format("genFileScanTasks finished, fileCount = [%s]", scanTasks.size()));
         Project project = projectInfoDto.getProject();
         PsiManager psiManager = PsiManager.getInstance(project);
         VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();
         for (int i = 0; i < scanTasks.size(); i++) {
             FileDto fileDto = scanTasks.get(i);
-            LOGGER.info(String.format("scanOneFile begin %s/%s", i + 1, scanTasks.size()));
+            info(LOGGER, String.format("scanOneFile begin %s/%s", i + 1, scanTasks.size()));
+            long begin1 = System.currentTimeMillis();
             scanOneFile(fileDto, virtualFileManager, psiManager, srcRelativePaths);
-            LOGGER.info(String.format("scanOneFile end %s/%s", i + 1, scanTasks.size()));
-            if (!autoUpload) {
-                LOGGER.info(String.format("scanOneFile skip upload %s/%s", i + 1, scanTasks.size()));
-                continue;
-            }
-            LOGGER.info(String.format("scanOneFile upload begin %s/%s", i + 1, scanTasks.size()));
+            info(LOGGER, String.format("scanOneFile end %s/%s, dur = %sms", i + 1, scanTasks.size(), System.currentTimeMillis() - begin1));
+            long begin2 = System.currentTimeMillis();
             fileDtoConsumer.accept(fileDto);
-            LOGGER.info(String.format("scanOneFile upload end %s/%s", i + 1, scanTasks.size()));
+            info(LOGGER, String.format("scanOneFile callback end %s/%s, dur = %sms", i + 1, scanTasks.size(), System.currentTimeMillis() - begin2));
         }
     }
 
@@ -228,7 +227,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
                              PsiManager psiManager, Set<String> srcRelativePaths) {
         File file = fileDto.getFile();
         Path path = file.toPath();
-        LOGGER.info(String.format("scanOneFile, scanning file = [%s]", path));
+        info(LOGGER, String.format("scanOneFile, scanning file = [%s]", path));
         // src files
         if (!inSrcPaths(fileDto, srcRelativePaths)) {
             LOGGER.warn(String.format("scanOneFile ignore non src folders, pathStr = [%s]", path));
@@ -334,7 +333,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         Type type = new TypeToken<JsonResult<ProjectInfoDto>>() {
         }.getType();
         String responseJson = httpService.postJsonBody(url, requestJson);
-        LOGGER.info(String.format("queryProjectKey, responseJson = [%s]", responseJson));
+        info(LOGGER, String.format("queryProjectKey, responseJson = [%s]", responseJson));
         if (StringUtils.isEmpty(responseJson)) {
             LOGGER.error("queryProjectKey failed, response is empty");
             return null;
@@ -385,7 +384,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         Type type = new TypeToken<JsonResult<ProjectInfoDto>>() {
         }.getType();
         String responseJson = httpService.postJsonBody(url, requestJson);
-        LOGGER.info(String.format("upload projectBasicInfo, responseJson = [%s]", responseJson));
+        info(LOGGER, String.format("upload projectBasicInfo, responseJson = [%s]", responseJson));
         if (StringUtils.isEmpty(responseJson)) {
             LOGGER.error("upload projectBasicInfo failed, response is empty");
             return null;
@@ -423,7 +422,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         Type type = new TypeToken<JsonResult<FileDto>>() {
         }.getType();
         String responseJson = httpService.postJsonBody(url, requestJson);
-        LOGGER.info(String.format("upload projectFileInfo, responseJson = [%s]", responseJson));
+        info(LOGGER, String.format("upload projectFileInfo, responseJson = [%s]", responseJson));
         if (StringUtils.isEmpty(responseJson)) {
             LOGGER.error("upload projectFileInfo failed, response is empty");
             return null;
