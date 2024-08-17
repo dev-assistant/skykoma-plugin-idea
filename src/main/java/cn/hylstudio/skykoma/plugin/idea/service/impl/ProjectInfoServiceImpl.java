@@ -153,6 +153,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             waitScanStatus(scanId, null, ScanRecordDto.STATUS_UPLOADED);
         }
         ExecutorService executorService = Executors.newFixedThreadPool(8);
+        updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_SCANNING));
         scanAllFiles(fileDto -> {
             if (autoUpload) {
                 executorService.execute(() -> {
@@ -509,7 +510,8 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         while (n++ < 100) {
             ScanRecordDto scanRecordDto = queryScanStatus(new QueryScanPayload(scanId, relativePath));
             boolean succ = scanRecordDto != null && waitStatus.equals(scanRecordDto.getStatus());
-            info(LOGGER, String.format("waiting for status to %s, times = %s, succ = %s", waitStatus, n, succ));
+            info(LOGGER, String.format("waiting for status to %s, times = %s, succ = %s, scanId = %s, relativePath = %s",
+                    waitStatus, n, succ, scanId, relativePath));
             if (succ) {
                 return;
             }
@@ -534,7 +536,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         Type type = new TypeToken<JsonResult<ScanRecordDto>>() {
         }.getType();
         String responseJson = httpService.postJsonBody(url, requestJson);
-        info(LOGGER, String.format("queryScanStatus, responseJson = [%s]", responseJson));
+        info(LOGGER, String.format("queryScanStatus payload = [%s], responseJson = [%s]", payload, responseJson));
         if (StringUtils.isEmpty(responseJson)) {
             LOGGER.error("queryScanStatus failed, response is empty");
             return null;
