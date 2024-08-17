@@ -160,12 +160,12 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             ProjectInfoDto result = uploadProjectBasicInfoToServer(payload);
             waitScanStatus(scanId, null, ScanRecordDto.STATUS_UPLOADED);
         }
-        ExecutorService executorService = Executors.newFixedThreadPool(threads);
         updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_SCANNING));
         List<FileDto> neededUpload = new ArrayList<>();
-        scanAllFiles(fileDto -> neededUpload.add(fileDto));
-        CountDownLatch countDownLatch = new CountDownLatch(neededUpload.size());
+        scanAllFiles(neededUpload::add);
         if (autoUpload) {
+            ExecutorService executorService = Executors.newFixedThreadPool(threads);
+            CountDownLatch countDownLatch = new CountDownLatch(neededUpload.size());
             neededUpload.forEach(fileDto -> executorService.execute(() -> {
                 String relativePath = fileDto.getRelativePath();
                 updateScanStatus(new UpdateScanStatusPayload(scanId, relativePath, ScanRecordDto.STATUS_SCANNING));
@@ -174,13 +174,13 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
                 waitScanStatus(scanId, relativePath, ScanRecordDto.STATUS_SCANNED);
                 countDownLatch.countDown();
             }));
+            try {
+                countDownLatch.await();
+            } catch (Exception e) {
+                error(LOGGER, String.format("await error, e = %s", e.getMessage()), e);
+            }
+            updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_FINISHED));
         }
-        try {
-            countDownLatch.await();
-        } catch (Exception e) {
-            error(LOGGER, String.format("await error, e = %s", e.getMessage()), e);
-        }
-        updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_FINISHED));
         long dur = System.currentTimeMillis() - begin;
         SkykomaNotifier.notifyInfo(String.format("scan finished, scanId = %s, project = %s, dur = %sms", scanId, project.getName(), dur));
     }
