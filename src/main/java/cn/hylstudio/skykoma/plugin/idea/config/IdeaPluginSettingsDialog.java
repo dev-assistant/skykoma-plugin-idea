@@ -23,6 +23,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
     private JCheckBox dataServerEnabled;
     private JTextField apiHostField;
     private JTextField apiKeyField;
+    private JTextField threadsField;
     private JTextField jupyterPythonExecutable;
     private JTextField jupyterKernelName;
     private JTextField agentServerListenAddress;
@@ -68,6 +69,11 @@ public class IdeaPluginSettingsDialog implements Configurable {
         apiKeyField = new JTextField();
         panel.add(apiKeyField);
         apiKeyField.setText(propertiesComponent.getValue(DATA_SERVER_API_KEY, ""));
+
+        panel.add(new JLabel("Data Server Upload Threads"));
+        threadsField = new JTextField();
+        panel.add(threadsField);
+        threadsField.setText(propertiesComponent.getValue(DATA_SERVER_UPLOAD_THREADS, ""));
 
         IdeaPluginAgentServer ideaPluginAgentServer =
                 ApplicationManager.getApplication().getService(IdeaPluginAgentServer.class);
@@ -158,6 +164,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
         return !(Objects.equals(dataServerEnabled.isSelected(), propertiesComponent.getBoolean(DATA_SERVER_ENABLED, false)) &&
                 Objects.equals(apiHostField.getText(), propertiesComponent.getValue(DATA_SERVER_API_HOST, "")) &&
                 Objects.equals(apiKeyField.getText(), propertiesComponent.getValue(DATA_SERVER_API_KEY, "")) &&
+                Objects.equals(threadsField.getText(), propertiesComponent.getValue(DATA_SERVER_UPLOAD_THREADS, "")) &&
                 Objects.equals(agentServerListenAddress.getText(), propertiesComponent.getValue(AGENT_SERVER_LISTEN_ADDRESS, "")) &&
                 Objects.equals(agentServerListenPort.getText(), propertiesComponent.getValue(AGENT_SERVER_LISTEN_PORT, "")) &&
                 Objects.equals(jupyterKernelName.getText(), propertiesComponent.getValue(JUPYTER_KERNEL_NAME, "")) &&
@@ -175,6 +182,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
         propertiesComponent.setValue(DATA_SERVER_ENABLED, dataServerEnabled.isSelected());
         propertiesComponent.setValue(DATA_SERVER_API_HOST, apiHostField.getText());
         propertiesComponent.setValue(DATA_SERVER_API_KEY, apiKeyField.getText());
+        propertiesComponent.setValue(DATA_SERVER_UPLOAD_THREADS, threadsField.getText());
         propertiesComponent.setValue(AGENT_SERVER_LISTEN_ADDRESS, agentServerListenAddress.getText());
         propertiesComponent.setValue(AGENT_SERVER_LISTEN_PORT, agentServerListenPort.getText());
         propertiesComponent.setValue(JUPYTER_KERNEL_NAME, jupyterKernelName.getText());

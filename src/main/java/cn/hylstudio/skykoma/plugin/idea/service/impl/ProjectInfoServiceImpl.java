@@ -87,8 +87,9 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             LOGGER.error(String.format("parseProjectInfo error, projectKey empty, path = [%s]", project.getBasePath()));
             return null;
         }
+        int threads = propertiesComponent.getInt(SkykomaConstants.DATA_SERVER_UPLOAD_THREADS, 16);
         projectInfoDto.setKey(projectKey);
-        doScan(true);
+        doScan(true, threads);
         return projectInfoDto;
     }
 
@@ -123,7 +124,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
 //        return updateProjectInfo(false);
 //    }
 
-    public void doScan(boolean autoUpload) {
+    public void doScan(boolean autoUpload, int threads) {
         long begin = System.currentTimeMillis();
         Project project = projectInfoDto.getProject();
         String scanId = genScanId();
@@ -154,7 +155,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             ProjectInfoDto result = uploadProjectBasicInfoToServer(payload);
             waitScanStatus(scanId, null, ScanRecordDto.STATUS_UPLOADED);
         }
-        ExecutorService executorService = Executors.newFixedThreadPool(8);
+        ExecutorService executorService = Executors.newFixedThreadPool(threads);
         updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_SCANNING));
         scanAllFiles(fileDto -> {
             if (autoUpload) {

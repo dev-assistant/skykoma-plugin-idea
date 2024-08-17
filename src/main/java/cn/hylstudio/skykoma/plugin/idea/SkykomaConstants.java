@@ -49,6 +49,7 @@ public class SkykomaConstants {
     public static final String DATA_SERVER_API_HOST = PLUGIN_CONFIG_PREFIX + "data_server_api_host";
     public static final String DATA_SERVER_API_KEY = PLUGIN_CONFIG_PREFIX + "data_server_api_key";
     public static final String DATA_SERVER_ENABLED = PLUGIN_CONFIG_PREFIX + "data_server_enabled";
+    public static final String DATA_SERVER_UPLOAD_THREADS = PLUGIN_CONFIG_PREFIX + "data_server_upload_threads";
     public static final Boolean DATA_SERVER_ENABLED_DEFAULT = Boolean.FALSE;
     public static final String AGENT_SERVER_LISTEN_ADDRESS = PLUGIN_CONFIG_PREFIX + "agent_server_listen_address";
     public static final String AGENT_SERVER_LISTEN_ADDRESS_DEFAULT = "http://127.0.0.1";
