@@ -26,14 +26,6 @@ public class SkykomaProjectOpenForSmartModeListener implements StartupActivity.R
                 IProjectInfoService projectService = project.getService(IProjectInfoService.class);
                 projectService.setCurrentProject(project);
                 projectService.updateProjectInfo(true, indicator::setText, indicator::setFraction);
-//                ReadAction.nonBlocking(() -> {
-//                        })
-//                        .inSmartMode(project)
-//                        .expireWhen(() -> project.isDisposed())
-//                        .finishOnUiThread(ModalityState.NON_MODAL, (v) -> {
-//                            indicator.setFraction(1.0);
-//                        })
-//                        .submit(AppExecutorUtil.getAppExecutorService());
             }
         });
     }
