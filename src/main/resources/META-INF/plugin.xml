@@ -76,7 +76,7 @@
         <notificationGroup id="Skykoma Notification - default"
                            displayType="BALLOON"
                            key="skykoma.notifications.default"/>
-        <notificationGroup id="Skykoma Notification - errors"
+        <notificationGroup id="Skykoma Notification - error"
                            displayType="STICKY_BALLOON"
                            key="skykoma.notifications.error"/>
     </extensions>

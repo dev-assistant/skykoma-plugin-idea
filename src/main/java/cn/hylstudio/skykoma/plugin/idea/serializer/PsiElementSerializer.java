@@ -1,6 +1,8 @@
 package cn.hylstudio.skykoma.plugin.idea.serializer;
 
+import cn.hylstudio.skykoma.plugin.idea.util.GsonUtils;
 import cn.hylstudio.skykoma.plugin.idea.util.PsiUtils;
+import com.google.common.collect.Sets;
 import com.google.gson.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiElement;
@@ -30,33 +32,33 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
                                             int elemDepth, int propDepth,
                                             Set<Object> visited) {
         JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("gsonType", "PsiElement");
+        jsonObject.addProperty("elemDepth", elemDepth);
+        jsonObject.addProperty("propDepth", propDepth);
         if (visited.contains(psiElement)) {
-//            jsonObject.addProperty("omit", true);
-//            jsonObject.addProperty("omitReason", "cycle detected");
+            addError(jsonObject,"cycle detected");
             return jsonObject;
         }
         visited.add(psiElement);
-        jsonObject.addProperty("elemDepth", elemDepth);
-        jsonObject.addProperty("propDepth", propDepth);
         int lineNumber = PsiUtils.getLineNumber(psiElement);
         String currentFileName = currentFile.getName();
-        LOGGER.info(String.format("processing filePath = [%s], lineNum = [%s], elemDepth = [%s], propDepth = [%s]",
-                currentFileName, lineNumber, elemDepth, propDepth));
-        fillBasicInfo(currentFile, psiElement, jsonObject, elemDepth, propDepth);
-        if (!currentFile.equals(psiElement.getContainingFile())) {
-//            jsonObject.addProperty("omit", true);
-//            jsonObject.addProperty("omit", "out of file");
+        boolean needBreak = fillBasicInfo(currentFile, psiElement, jsonObject, elemDepth, propDepth);
+        LOGGER.info(String.format("processing filePath = [%s], lineNum = [%s], elemDepth = [%s], propDepth = [%s], needBreak = [%s]",
+                currentFileName, lineNumber, elemDepth, propDepth, needBreak));
+        boolean hasProps = !needBreak;
+        jsonObject.addProperty("hasProps", hasProps);
+        if (needBreak) {
             return jsonObject;
         }
-//        jsonObject.addProperty("omit", false);
         // Serialize properties
         JsonObject props = getPsiElementProps(psiElement, jsonSerializationContext, elemDepth, propDepth, visited);
         jsonObject.add("props", props);
+        JsonArray childElementsJsonArray = new JsonArray();
+        jsonObject.add("childElements", childElementsJsonArray);
         if (propDepth > 1) {//避免结果膨胀，第二层开始不向下递归
             return jsonObject;
         }
         // Serialize child elements
-        JsonArray childElementsJsonArray = new JsonArray();
         PsiElement[] childElements = psiElement.getChildren();
         for (PsiElement childElement : childElements) {
             try {
@@ -65,37 +67,109 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
                 LOGGER.error(String.format("psiElement serialize error, e = [%s]", e.getMessage()), e);
             }
         }
-        jsonObject.add("childElements", childElementsJsonArray);
         return jsonObject;
     }
+    static HashSet<String> excludeMethods = Sets.newHashSet(
+            "com.intellij.psi.impl.source.PsiClassImpl|getAllFields",
+            "com.intellij.psi.impl.source.PsiClassImpl|getAllInnerClasses",
+            "com.intellij.psi.impl.source.PsiClassImpl|getAllMethods",
+            "com.intellij.psi.impl.source.PsiClassImpl|getAllMethodsAndTheirSubstitutors",
+            "com.intellij.psi.impl.source.PsiClassImpl|getInterfaces",
+            "com.intellij.psi.impl.source.PsiClassImpl|getSuperClass",
+            "com.intellij.psi.impl.source.PsiClassImpl|getSupers",
+            "com.intellij.psi.impl.source.PsiClassImpl|getSuperTypes",
+            "com.intellij.psi.impl.source.PsiClassImpl|getVisibleSignatures",
+            "com.intellij.psi.impl.source.PsiFieldImpl|computeConstantValue",
+            "com.intellij.psi.impl.source.PsiImportStaticReferenceElementImpl|resolve",
+            "com.intellij.psi.impl.source.PsiImportStaticStatementImpl|resolveTargetClass",
+            "com.intellij.psi.impl.source.PsiJavaCodeReferenceElementImpl|getCanonicalText",
+            "com.intellij.psi.impl.source.PsiJavaCodeReferenceElementImpl|getQualifiedName",
+            "com.intellij.psi.impl.source.PsiJavaCodeReferenceElementImpl|getVariants",
+            "com.intellij.psi.impl.source.PsiJavaCodeReferenceElementImpl|resolve",
+            "com.intellij.psi.impl.source.PsiMethodImpl|findDeepestSuperMethod",
+            "com.intellij.psi.impl.source.PsiMethodImpl|findDeepestSuperMethods",
+            "com.intellij.psi.impl.source.PsiMethodImpl|findSuperMethods",
+            "com.intellij.psi.impl.source.PsiMethodImpl|getHierarchicalMethodSignature",
+            "com.intellij.psi.impl.source.PsiModifierListImpl|getApplicableAnnotations",
+            "com.intellij.psi.impl.source.PsiParameterImpl|getType",
+            "com.intellij.psi.impl.source.PsiParameterImpl|normalizeDeclaration",
+            "com.intellij.psi.impl.source.PsiTypeElementImpl|getAnnotations",
+            "com.intellij.psi.impl.source.PsiTypeElementImpl|getApplicableAnnotations",
+            "com.intellij.psi.impl.source.tree.java.PsiAnnotationImpl|getQualifiedName",
+            "com.intellij.psi.impl.source.tree.java.PsiAssignmentExpressionImpl|getType",
+            "com.intellij.psi.impl.source.tree.java.PsiBinaryExpressionImpl|getType",
+            "com.intellij.psi.impl.source.tree.java.PsiCatchSectionImpl|getPreciseCatchTypes",
+            "com.intellij.psi.impl.source.tree.java.PsiClassObjectAccessExpressionImpl|getType",
+            "com.intellij.psi.impl.source.tree.java.PsiExpressionListImpl|getExpressionTypes",
+            "com.intellij.psi.impl.source.tree.java.PsiJavaTokenImpl|getTokenType",
+            "com.intellij.psi.impl.source.tree.java.PsiJavaTokenImpl|toString",
+            "com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl|getFunctionalInterfaceType",
+            "com.intellij.psi.impl.source.tree.java.PsiMethodCallExpressionImpl|getType",
+            "com.intellij.psi.impl.source.tree.java.PsiMethodCallExpressionImpl|resolveMethod",
+            "com.intellij.psi.impl.source.tree.java.PsiMethodCallExpressionImpl|resolveMethodGenerics",
+            "com.intellij.psi.impl.source.tree.java.PsiMethodReferenceExpressionImpl|getFunctionalInterfaceType",
+            "com.intellij.psi.impl.source.tree.java.PsiMethodReferenceExpressionImpl|getPotentiallyApplicableMember",
+            "com.intellij.psi.impl.source.tree.java.PsiMethodReferenceExpressionImpl|isExact",
+            "com.intellij.psi.impl.source.tree.java.PsiMethodReferenceExpressionImpl|resolve",
+            "com.intellij.psi.impl.source.tree.java.PsiNewExpressionImpl|resolveConstructor",
+            "com.intellij.psi.impl.source.tree.java.PsiNewExpressionImpl|resolveMethod",
+            "com.intellij.psi.impl.source.tree.java.PsiNewExpressionImpl|resolveMethodGenerics",
+            "com.intellij.psi.impl.source.tree.java.PsiPrefixExpressionImpl|getType",
+            "com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl|getCanonicalText",
+            "com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl|getClassNameText",
+            "com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl|getQualifiedName",
+            "com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl|getQualifierExpression",
+            "com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl|getType",
+            "com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl|resolve",
+            "com.intellij.psi.impl.source.tree.java.PsiTypeCastExpressionImpl|getType",
+            "com.intellij.psi.impl.source.tree.java.PsiTypeParameterImpl|getAllMethodsAndTheirSubstitutors",
+            "com.intellij.psi.impl.source.tree.java.PsiTypeParameterImpl|getImplementsList",
+            "com.intellij.psi.impl.source.tree.java.PsiTypeParameterImpl|getSuperClass",
+            "com.intellij.psi.impl.source.tree.java.PsiTypeParameterImpl|getSupers",
+            "com.intellij.psi.impl.source.tree.java.PsiTypeParameterImpl|getSuperTypes",
+            "com.intellij.psi.impl.source.tree.java.PsiTypeParameterImpl|getVisibleSignatures",
+            "de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder|copy",
+            "de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder|getChildren",
+            "de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder|getModifierList",
+            "de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder|getNameIdentifier",
+            "de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder|getParameterList"
+            );
 
     public static JsonObject getPsiElementProps(PsiElement psiElement, JsonSerializationContext jsonSerializationContext,
                                           int elemDepth, int propDepth, Set<Object> visited) {
         JsonObject props = new JsonObject();
+        props.addProperty("propDepth", propDepth);
         if (propDepth > 2) {
-//            props.addProperty("omit", true);
-//            props.addProperty("omitReason", "maximum depth reached");
+            addError(props,"propDepth > 2");
             return props;
         }
-//        props.addProperty("propDepth", propDepth);
         Class<? extends PsiElement> clazz = psiElement.getClass();
         Method[] methods = clazz.getDeclaredMethods();
+        String clazzName = clazz.getName();
         for (Method method : methods) {
             String methodName = method.getName();
             Method accessibleMethod = MethodUtils.getAccessibleMethod(method);
             if (accessibleMethod == null || method.getParameterCount() > 0) {
                 continue;
             }
+            if (excludeMethods.contains(String.format("%s|%s", clazzName, methodName))) {
+                props.addProperty(methodName, "excluded");
+                continue;
+            }
             // 检查递归深度
             try {
                 Object result = method.invoke(psiElement);
                 Set<Object> visitedForProp = new HashSet<>(visited);
-                JsonElement jsonElement = convertToJsonElement(psiElement.getContainingFile(), result, jsonSerializationContext, elemDepth, propDepth, visitedForProp);
-                props.add(methodName, jsonElement);
+//                JsonObject jsonObject = new JsonObject();
+                JsonElement resultValueJsonElement = convertToJsonElement(psiElement.getContainingFile(), result, jsonSerializationContext, elemDepth, propDepth, visitedForProp);
+//                jsonObject.addProperty("type", result.getClass().getName());
+//                jsonObject.add("val", resultValueJsonElement);
+                props.add(methodName, resultValueJsonElement);
             } catch (Throwable e) {
 //                props.addProperty(methodName, "props error:" + e.getMessage());
                 props.add(methodName, null);
-                LOGGER.error(String.format("gen props error, psiElement = [%s], e = [%s]", psiElement, e.getMessage()));
+                GsonUtils.collectInvokeError(clazzName, methodName, e.getMessage());
+                LOGGER.error(String.format("gen props error, psiElement = [%s], methodName = [%s], e = [%s]", psiElement, methodName, e.getMessage()));
             }
         }
         return props;

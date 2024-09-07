@@ -1,5 +1,6 @@
 package cn.hylstudio.skykoma.plugin.idea.model;
 
+import com.intellij.psi.PsiFile;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -13,13 +14,18 @@ import java.util.stream.Collectors;
 @Data
 @NoArgsConstructor
 public class FileDto {
+    public static final String STATUS_WAIT = "WAIT";
+    public static final String STATUS_GSON_FINISHED = "GSON_FINISHED";
+
     private File file;
     private String name;
     private String type;//file folder
     private String relativePath;
     private String absolutePath;
     private String psiFileJson;
+    private PsiFile psiFile;
     private List<FileDto> subFiles;
+    private String status;
 
     public FileDto(File file, String rootPath) {
         this.file = file;

@@ -7,12 +7,14 @@ import cn.hylstudio.skykoma.plugin.idea.model.result.BizCode;
 import cn.hylstudio.skykoma.plugin.idea.model.result.JsonResult;
 import cn.hylstudio.skykoma.plugin.idea.service.IHttpService;
 import cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService;
+import cn.hylstudio.skykoma.plugin.idea.util.GsonUtils;
 import cn.hylstudio.skykoma.plugin.idea.util.SkykomaNotifier;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.reflect.TypeToken;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
@@ -24,8 +26,10 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.util.concurrency.AppExecutorUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.jps.model.java.JavaResourceRootType;
 import org.jetbrains.jps.model.java.JavaSourceRootType;
 
@@ -36,7 +40,6 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -74,6 +77,12 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
 
     @Override
     public ProjectInfoDto updateProjectInfo(boolean autoUpload) {
+        return updateProjectInfo(autoUpload, v -> {
+        }, v -> {
+        });
+    }
+
+    public ProjectInfoDto updateProjectInfo(boolean autoUpload, Consumer<String> progressText, Consumer<Double> fraction) {
         Project project = projectInfoDto.getProject();
         assert project != null;
         if (!autoUpload) {
@@ -91,7 +100,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             return null;
         }
         projectInfoDto.setKey(projectKey);
-        doScan(true);
+        doScan(true, progressText, fraction);
         return projectInfoDto;
     }
 
@@ -128,6 +137,14 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
 
     @Override
     public void doScan(boolean autoUpload) {
+        doScan(autoUpload, v -> {
+        }, v -> {
+        });
+    }
+
+    @Override
+    public void doScan(boolean autoUpload, Consumer<String> progressText, Consumer<Double> fraction) {
+        progressText.accept("init project info start");
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
         int threads = propertiesComponent.getInt(SkykomaConstants.DATA_SERVER_UPLOAD_THREADS, 16);
         long begin = System.currentTimeMillis();
@@ -160,29 +177,74 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             ProjectInfoDto result = uploadProjectBasicInfoToServer(payload);
             waitScanStatus(scanId, null, ScanRecordDto.STATUS_UPLOADED);
         }
+        progressText.accept("init project info end, scanning files");
         updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_SCANNING));
         List<FileDto> neededUpload = new ArrayList<>();
         scanAllFiles(neededUpload::add);
+        Map<String, Map<String, String>> errorMap = GsonUtils.reportErrorMap();
+        progressText.accept("scanning files end");
         if (autoUpload) {
-            ExecutorService executorService = Executors.newFixedThreadPool(threads);
-            CountDownLatch countDownLatch = new CountDownLatch(neededUpload.size());
-            neededUpload.forEach(fileDto -> executorService.execute(() -> {
-                String relativePath = fileDto.getRelativePath();
-                updateScanStatus(new UpdateScanStatusPayload(scanId, relativePath, ScanRecordDto.STATUS_SCANNING));
-                UploadProjectFileInfoPayload payload = new UploadProjectFileInfoPayload(scanId, fileDto);
-                FileDto result = uploadProjectFileInfoToServer(payload);
-                waitScanStatus(scanId, relativePath, ScanRecordDto.STATUS_SCANNED);
-                countDownLatch.countDown();
-            }));
-            try {
-                countDownLatch.await();
-            } catch (Exception e) {
-                error(LOGGER, String.format("await error, e = %s", e.getMessage()), e);
-            }
-            updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_FINISHED));
+            uploadToServer(progressText, threads, scanId, neededUpload, errorMap);
         }
         long dur = System.currentTimeMillis() - begin;
         SkykomaNotifier.notifyInfo(String.format("scan finished, scanId = %s, project = %s, dur = %sms", scanId, project.getName(), dur));
+    }
+
+    private void uploadToServer(Consumer<String> progressText, int threads, String scanId, List<FileDto> neededUpload, Map<String, Map<String, String>> errorMap) {
+        progressText.accept(String.format("scanning files end, uploading using %s threads", threads));
+        ExecutorService executorService = Executors.newFixedThreadPool(threads);
+        CountDownLatch countDownLatch = new CountDownLatch(neededUpload.size());
+        CountDownLatch gsonFinished = new CountDownLatch(neededUpload.size());
+        neededUpload.forEach(fileDto -> executorService.execute(() -> {
+            String relativePath = fileDto.getRelativePath();
+            waitFileStatus(scanId, fileDto, FileDto.STATUS_GSON_FINISHED);
+            gsonFinished.countDown();
+            updateScanStatus(new UpdateScanStatusPayload(scanId, relativePath, ScanRecordDto.STATUS_SCANNING));
+            fileDto.setStatus(ScanRecordDto.STATUS_SCANNING);
+            UploadProjectFileInfoPayload payload = new UploadProjectFileInfoPayload(scanId, fileDto);
+            FileDto result = uploadProjectFileInfoToServer(payload);
+            waitScanStatus(scanId, fileDto, ScanRecordDto.STATUS_SCANNED);
+            fileDto.setStatus(ScanRecordDto.STATUS_SCANNED);
+            fileDto.setPsiFileJson("");
+            countDownLatch.countDown();
+        }));
+        scheduleUpdateProgress(progressText, neededUpload);
+        try {
+            gsonFinished.await();
+            info("errorMap report");
+            errorMap.entrySet().forEach(entry -> entry.getValue().entrySet().forEach(method -> info(entry.getKey() + "|" + method.getKey() + "|" + method.getValue())));
+        } catch (Exception e) {
+            error(LOGGER, String.format("await error, e = %s", e.getMessage()), e);
+        }
+        try {
+            countDownLatch.await();
+        } catch (Exception e) {
+            error(LOGGER, String.format("await error, e = %s", e.getMessage()), e);
+        }
+        updateScanStatus(new UpdateScanStatusPayload(scanId, null, ScanRecordDto.STATUS_FINISHED));
+    }
+
+
+    private static void scheduleUpdateProgress(Consumer<String> progressText, List<FileDto> neededUpload) {
+        Thread monitor = new Thread(() -> {
+            long start = System.currentTimeMillis();
+            while (true) {
+                long scanningFilesSize = neededUpload.stream().filter(v -> ScanRecordDto.STATUS_SCANNING.equals(v.getStatus())).count();
+                long scannedFilesSize = neededUpload.stream().filter(v -> ScanRecordDto.STATUS_SCANNED.equals(v.getStatus())).count();
+                long dur = System.currentTimeMillis() - start;
+                progressText.accept(String.format("scanned files %s(%sscanning,%sscanned), dur = %s", neededUpload.size(), scanningFilesSize, scannedFilesSize, dur));
+                if (scannedFilesSize == neededUpload.size()) {
+                    break;
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (Exception e) {
+                }
+            }
+
+        });
+        monitor.setName("monitor");
+        monitor.start();
     }
 
 
@@ -235,13 +297,20 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();
         for (int i = 0; i < scanTasks.size(); i++) {
             FileDto fileDto = scanTasks.get(i);
-            info(LOGGER, String.format("scanOneFile file = [%s], begin %s/%s", fileDto.getName(), i + 1, scanTasks.size()));
-            long begin1 = System.currentTimeMillis();
-            scanOneFile(fileDto, virtualFileManager, psiManager, srcRelativePaths);
-            info(LOGGER, String.format("scanOneFile file = [%s], end %s/%s, dur = %sms", fileDto.getName(), i + 1, scanTasks.size(), System.currentTimeMillis() - begin1));
-            if (StringUtils.isBlank(fileDto.getPsiFileJson())) {
+            PsiFile psiFile = ReadAction.compute(() -> getPsiFile(fileDto, virtualFileManager, psiManager, srcRelativePaths));
+            ;
+            if (psiFile == null) {
                 continue;
             }
+            fileDto.setPsiFile(psiFile);
+//            scanOneFile(fileDto);
+            ReadAction.nonBlocking(() -> scanOneFile(fileDto))
+                    .inSmartMode(project)
+                    .expireWhen(() -> project.isDisposed())
+                    .submit(AppExecutorUtil.getAppExecutorService());
+//            if (StringUtils.isBlank(fileDto.getPsiFileJson())) {
+//                continue;
+//            }
             long begin2 = System.currentTimeMillis();
             fileDtoConsumer.accept(fileDto);
             info(LOGGER, String.format("scanOneFile file = [%s], callback end %s/%s, dur = %sms", fileDto.getName(), i + 1, scanTasks.size(), System.currentTimeMillis() - begin2));
@@ -259,34 +328,47 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         }
     }
 
-    private void scanOneFile(FileDto fileDto, VirtualFileManager virtualFileManager,
-                             PsiManager psiManager, Set<String> srcRelativePaths) {
+    private void scanOneFile(FileDto fileDto) {
+        long start = System.currentTimeMillis();
+        info(LOGGER, String.format("scanOneFile file = [%s], begin,thread = %s", fileDto.getName(), Thread.currentThread().getName()));
+        PsiFile psiFile = fileDto.getPsiFile();
+        PsiElement[] childrenElements = psiFile.getChildren();
+        String psiFileJson = ReadAction.compute(() -> {
+            return PSI_GSON.toJson(childrenElements);
+        });
+        fileDto.setPsiFileJson(psiFileJson);
+        fileDto.setStatus(FileDto.STATUS_GSON_FINISHED);
+        long dur = System.currentTimeMillis() - start;
+        info(LOGGER, String.format("scanOneFile file = [%s], end dur = %sms", fileDto.getName(), dur));
+    }
+
+    @Nullable
+    private PsiFile getPsiFile(FileDto fileDto, VirtualFileManager virtualFileManager, PsiManager psiManager, Set<String> srcRelativePaths) {
         File file = fileDto.getFile();
         Path path = file.toPath();
         info(LOGGER, String.format("scanOneFile, scanning file = [%s]", path));
         // src files
         if (!inSrcPaths(fileDto, srcRelativePaths)) {
             LOGGER.warn(String.format("scanOneFile ignore non src folders, pathStr = [%s]", path));
-            return;
+            return null;
         }
         VirtualFile virtualFile = virtualFileManager.findFileByNioPath(path);
         if (virtualFile == null) {
             LOGGER.warn(String.format("scanOneFile error, virtualFile not found, pathStr = [%s]", path));
-            return;
+            return null;
         }
         String fileName = fileDto.getName();
         if (!fileName.endsWith(".java")) {
             LOGGER.warn(String.format("scanOneFile ignore non java, pathStr = [%s]", path));
-            return;
+            return null;
         }
         PsiFile psiFile = psiManager.findFile(virtualFile);
         if (psiFile == null) {
             LOGGER.warn(String.format("scanOneFile error, psiFile not found, pathStr = [%s]", path));
-            return;
+            return null;
         }
-        PsiElement[] childrenElements = psiFile.getChildren();
-        String psiFileJson = PSI_GSON.toJson(childrenElements);
-        fileDto.setPsiFileJson(psiFileJson);
+        fileDto.setStatus(FileDto.STATUS_WAIT);
+        return psiFile;
     }
 
     private boolean inSrcPaths(FileDto fileDto, Set<String> srcRelativePaths) {
@@ -525,13 +607,17 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         return respone.getData();
     }
 
-    private void waitScanStatus(String scanId, String relativePath, String waitStatus) {
-        int n = 0;
-        while (n++ < 100) {
-            ScanRecordDto scanRecordDto = queryScanStatus(new QueryScanPayload(scanId, relativePath));
-            boolean succ = scanRecordDto != null && waitStatus.equals(scanRecordDto.getStatus());
-            info(LOGGER, String.format("waiting for status to %s, times = %s, succ = %s, scanId = %s, relativePath = %s",
-                    waitStatus, n, succ, scanId, relativePath));
+    private void waitFileStatus(String scanId, FileDto fileDto, String waitStatus) {
+        long start = System.currentTimeMillis();
+        String fileName = "";
+        if (fileDto != null) {
+            fileName = fileDto.getName();
+        }
+        while (true) {
+            boolean succ = fileDto != null && waitStatus.equals(fileDto.getStatus());
+            long dur = System.currentTimeMillis() - start;
+            info(LOGGER, String.format("waiting for file status to %s, dur = %sms, succ = %s, scanId = %s, file = %s",
+                    waitStatus, dur, succ, scanId, fileName));
             if (succ) {
                 return;
             }
@@ -541,7 +627,31 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
 
             }
         }
-        throw new RuntimeException(String.format("wait status to %s timeout", waitStatus));
+    }
+
+    private void waitScanStatus(String scanId, FileDto fileDto, String waitStatus) {
+        long start = System.currentTimeMillis();
+        String relativePath = "";
+        String fileName = "";
+        if (fileDto != null) {
+            relativePath = fileDto.getRelativePath();
+            fileName = fileDto.getName();
+        }
+        while (true) {
+            ScanRecordDto scanRecordDto = queryScanStatus(new QueryScanPayload(scanId, relativePath));
+            boolean succ = scanRecordDto != null && waitStatus.equals(scanRecordDto.getStatus());
+            long dur = System.currentTimeMillis() - start;
+            info(LOGGER, String.format("waiting for status to %s, dur = %sms, succ = %s, scanId = %s, file = %s",
+                    waitStatus, dur, succ, scanId, fileName));
+            if (succ) {
+                return;
+            }
+            try {
+                Thread.sleep(5000);
+            } catch (Exception e) {
+
+            }
+        }
     }
 
     private ScanRecordDto queryScanStatus(QueryScanPayload payload) {

@@ -38,7 +38,7 @@ public class UpdateProjectInfoAction extends AnAction {
                 Application application = ApplicationManager.getApplication();
                 application.runReadAction(() -> {
                     IProjectInfoService projectService = project.getService(IProjectInfoService.class);
-                    projectService.updateProjectInfo(true);
+                    projectService.updateProjectInfo(true, indicator::setText, indicator::setFraction);
                 });
                 indicator.setFraction(1.0);
                 // 耗时操作完成
