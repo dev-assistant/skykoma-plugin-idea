@@ -3,12 +3,9 @@
 package cn.hylstudio.skykoma.plugin.idea.action;
 
 import cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService;
-import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
-import com.intellij.openapi.application.Application;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -27,11 +24,12 @@ public class UpdateProjectInfoAction extends AnAction {
         ProgressManager.getInstance().run(new Task.Backgroundable(project, "UploadProjectInfo Task") {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                DumbService.getInstance(project).runWhenSmart(() -> {
-                    IProjectInfoService projectService = project.getService(IProjectInfoService.class);
-                    projectService.setCurrentProject(project);
-                    projectService.updateProjectInfo(true, indicator::setText, indicator::setFraction);
-                });
+                indicator.setText("waiting smart mode");
+                DumbService.getInstance(project).waitForSmartMode();
+                //back to current thread
+                IProjectInfoService projectService = project.getService(IProjectInfoService.class);
+                projectService.setCurrentProject(project);
+                projectService.updateProjectInfo(true, indicator::setText, indicator::setFraction);
             }
         });
     }

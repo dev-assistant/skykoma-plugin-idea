@@ -21,16 +21,7 @@ public class TestAction extends AnAction {
     public void actionPerformed(AnActionEvent anActionEvent) {
         Project project = anActionEvent.getProject();
         assert project != null;
-        ProgressManager.getInstance().run(new Task.Backgroundable(project, "UploadProjectInfo Task") {
-            @Override
-            public void run(@NotNull ProgressIndicator indicator) {
-                DumbService.getInstance(project).runWhenSmart(() -> {
-                    IProjectInfoService projectService = project.getService(IProjectInfoService.class);
-                    projectService.setCurrentProject(project);
-                    projectService.updateProjectInfo(true, indicator::setText, indicator::setFraction);
-                });
-            }
-        });
+        System.out.println("Test action");
     }
 
     @Override

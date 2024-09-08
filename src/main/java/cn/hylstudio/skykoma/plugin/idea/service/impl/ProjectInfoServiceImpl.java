@@ -332,9 +332,10 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         info(LOGGER, String.format("scanOneFile file = [%s], begin,thread = %s", fileDto.getName(), Thread.currentThread().getName()));
         PsiFile psiFile = fileDto.getPsiFile();
         PsiElement[] childrenElements = psiFile.getChildren();
-        String psiFileJson = ReadAction.compute(() -> {
-            return PSI_GSON.toJson(childrenElements);
-        });
+        String psiFileJson = PSI_GSON.toJson(childrenElements);
+//        String psiFileJson = ReadAction.compute(() -> {
+//            return PSI_GSON.toJson(childrenElements);
+//        });
         fileDto.setPsiFileJson(psiFileJson);
         fileDto.setStatus(FileDto.STATUS_GSON_FINISHED);
         long dur = System.currentTimeMillis() - start;
