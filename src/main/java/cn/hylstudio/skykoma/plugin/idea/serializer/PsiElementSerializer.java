@@ -115,7 +115,7 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
                 props.add(methodName, resultValueJsonElement);
             } catch (Throwable e) {
                 String errMsg = e.getMessage();
-                String errMsgForJson = String.format("gen props error, psiElement = [%s], methodName = [%s], e = [%s]", psiElement, methodName, errMsg);
+                String errMsgForJson = String.format("gen props error, psiElement = [%s], methodId = [%s], e = [%s]", psiElement, methodId, errMsg);
                 props.addProperty(methodName, errMsgForJson);
                 GsonUtils.collectInvokeError(clazzName, methodName, errMsg);
                 LOGGER.error(errMsgForJson);
