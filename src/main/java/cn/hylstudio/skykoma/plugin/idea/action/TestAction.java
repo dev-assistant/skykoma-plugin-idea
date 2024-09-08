@@ -3,16 +3,14 @@
 package cn.hylstudio.skykoma.plugin.idea.action;
 
 import cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService;
-import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
-import com.intellij.openapi.application.Application;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
@@ -26,9 +24,11 @@ public class TestAction extends AnAction {
         ProgressManager.getInstance().run(new Task.Backgroundable(project, "UploadProjectInfo Task") {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                IProjectInfoService projectService = project.getService(IProjectInfoService.class);
-                projectService.setCurrentProject(project);
-                projectService.updateProjectInfo(true, indicator::setText, indicator::setFraction);
+                DumbService.getInstance(project).runWhenSmart(() -> {
+                    IProjectInfoService projectService = project.getService(IProjectInfoService.class);
+                    projectService.setCurrentProject(project);
+                    projectService.updateProjectInfo(true, indicator::setText, indicator::setFraction);
+                });
             }
         });
     }

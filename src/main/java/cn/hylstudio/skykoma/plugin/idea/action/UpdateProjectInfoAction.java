@@ -13,6 +13,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
@@ -26,9 +27,11 @@ public class UpdateProjectInfoAction extends AnAction {
         ProgressManager.getInstance().run(new Task.Backgroundable(project, "UploadProjectInfo Task") {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                IProjectInfoService projectService = project.getService(IProjectInfoService.class);
-                projectService.setCurrentProject(project);
-                projectService.updateProjectInfo(true, indicator::setText, indicator::setFraction);
+                DumbService.getInstance(project).runWhenSmart(() -> {
+                    IProjectInfoService projectService = project.getService(IProjectInfoService.class);
+                    projectService.setCurrentProject(project);
+                    projectService.updateProjectInfo(true, indicator::setText, indicator::setFraction);
+                });
             }
         });
     }
