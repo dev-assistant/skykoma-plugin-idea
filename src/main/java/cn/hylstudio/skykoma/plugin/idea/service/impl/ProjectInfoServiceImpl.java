@@ -298,12 +298,11 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
         for (int i = 0; i < scanTasks.size(); i++) {
             FileDto fileDto = scanTasks.get(i);
             PsiFile psiFile = ReadAction.compute(() -> getPsiFile(fileDto, virtualFileManager, psiManager, srcRelativePaths));
-            ;
             if (psiFile == null) {
                 continue;
             }
             fileDto.setPsiFile(psiFile);
-//            scanOneFile(fileDto);
+//            ReadAction.run(() -> scanOneFile(fileDto));
             ReadAction.nonBlocking(() -> scanOneFile(fileDto))
                     .inSmartMode(project)
                     .expireWhen(() -> project.isDisposed())

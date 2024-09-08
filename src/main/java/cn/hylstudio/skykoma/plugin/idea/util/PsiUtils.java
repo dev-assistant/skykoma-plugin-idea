@@ -46,6 +46,7 @@ public class PsiUtils {
     public static String assignStmt(String assignedExpression, String valueExpression) {
         return String.format("%s = %s", assignedExpression, valueExpression);
     }
+
     public static String getAnnotationValue(PsiModifierList modifierList, String annotationClassName,
                                             String attributeName) {
         return getAnnotationValue(modifierList, annotationClassName, attributeName, "");
@@ -131,6 +132,9 @@ public class PsiUtils {
 
     public static int getLineNumber(PsiElement v) {
         PsiFile containingFile = v.getContainingFile();
+        if (containingFile == null) {
+            return 1;
+        }
         FileViewProvider fileViewProvider = containingFile.getViewProvider();
         Document document = fileViewProvider.getDocument();
         int textOffset = v.getTextOffset();

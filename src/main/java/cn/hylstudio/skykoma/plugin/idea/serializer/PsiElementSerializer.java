@@ -69,71 +69,17 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
         }
         return jsonObject;
     }
+
     static HashSet<String> excludeMethods = Sets.newHashSet(
-            "com.intellij.psi.impl.source.PsiClassImpl|getAllFields",
-            "com.intellij.psi.impl.source.PsiClassImpl|getAllInnerClasses",
-            "com.intellij.psi.impl.source.PsiClassImpl|getAllMethods",
-            "com.intellij.psi.impl.source.PsiClassImpl|getAllMethodsAndTheirSubstitutors",
-            "com.intellij.psi.impl.source.PsiClassImpl|getInterfaces",
-            "com.intellij.psi.impl.source.PsiClassImpl|getSuperClass",
-            "com.intellij.psi.impl.source.PsiClassImpl|getSupers",
-            "com.intellij.psi.impl.source.PsiClassImpl|getSuperTypes",
-            "com.intellij.psi.impl.source.PsiClassImpl|getVisibleSignatures",
-            "com.intellij.psi.impl.source.PsiFieldImpl|computeConstantValue",
-            "com.intellij.psi.impl.source.PsiImportStaticReferenceElementImpl|resolve",
-            "com.intellij.psi.impl.source.PsiImportStaticStatementImpl|resolveTargetClass",
-            "com.intellij.psi.impl.source.PsiJavaCodeReferenceElementImpl|getCanonicalText",
-            "com.intellij.psi.impl.source.PsiJavaCodeReferenceElementImpl|getQualifiedName",
-            "com.intellij.psi.impl.source.PsiJavaCodeReferenceElementImpl|getVariants",
-            "com.intellij.psi.impl.source.PsiJavaCodeReferenceElementImpl|resolve",
-            "com.intellij.psi.impl.source.PsiMethodImpl|findDeepestSuperMethod",
-            "com.intellij.psi.impl.source.PsiMethodImpl|findDeepestSuperMethods",
-            "com.intellij.psi.impl.source.PsiMethodImpl|findSuperMethods",
-            "com.intellij.psi.impl.source.PsiMethodImpl|getHierarchicalMethodSignature",
-            "com.intellij.psi.impl.source.PsiModifierListImpl|getApplicableAnnotations",
-            "com.intellij.psi.impl.source.PsiParameterImpl|getType",
             "com.intellij.psi.impl.source.PsiParameterImpl|normalizeDeclaration",
-            "com.intellij.psi.impl.source.PsiTypeElementImpl|getAnnotations",
-            "com.intellij.psi.impl.source.PsiTypeElementImpl|getApplicableAnnotations",
-            "com.intellij.psi.impl.source.tree.java.PsiAnnotationImpl|getQualifiedName",
-            "com.intellij.psi.impl.source.tree.java.PsiAssignmentExpressionImpl|getType",
-            "com.intellij.psi.impl.source.tree.java.PsiBinaryExpressionImpl|getType",
-            "com.intellij.psi.impl.source.tree.java.PsiCatchSectionImpl|getPreciseCatchTypes",
-            "com.intellij.psi.impl.source.tree.java.PsiClassObjectAccessExpressionImpl|getType",
-            "com.intellij.psi.impl.source.tree.java.PsiExpressionListImpl|getExpressionTypes",
-            "com.intellij.psi.impl.source.tree.java.PsiJavaTokenImpl|getTokenType",
-            "com.intellij.psi.impl.source.tree.java.PsiJavaTokenImpl|toString",
-            "com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl|getFunctionalInterfaceType",
-            "com.intellij.psi.impl.source.tree.java.PsiMethodCallExpressionImpl|getType",
-            "com.intellij.psi.impl.source.tree.java.PsiMethodCallExpressionImpl|resolveMethod",
-            "com.intellij.psi.impl.source.tree.java.PsiMethodCallExpressionImpl|resolveMethodGenerics",
-            "com.intellij.psi.impl.source.tree.java.PsiMethodReferenceExpressionImpl|getFunctionalInterfaceType",
-            "com.intellij.psi.impl.source.tree.java.PsiMethodReferenceExpressionImpl|getPotentiallyApplicableMember",
-            "com.intellij.psi.impl.source.tree.java.PsiMethodReferenceExpressionImpl|isExact",
-            "com.intellij.psi.impl.source.tree.java.PsiMethodReferenceExpressionImpl|resolve",
-            "com.intellij.psi.impl.source.tree.java.PsiNewExpressionImpl|resolveConstructor",
-            "com.intellij.psi.impl.source.tree.java.PsiNewExpressionImpl|resolveMethod",
-            "com.intellij.psi.impl.source.tree.java.PsiNewExpressionImpl|resolveMethodGenerics",
-            "com.intellij.psi.impl.source.tree.java.PsiPrefixExpressionImpl|getType",
-            "com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl|getCanonicalText",
-            "com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl|getClassNameText",
-            "com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl|getQualifiedName",
-            "com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl|getQualifierExpression",
-            "com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl|getType",
-            "com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl|resolve",
-            "com.intellij.psi.impl.source.tree.java.PsiTypeCastExpressionImpl|getType",
-            "com.intellij.psi.impl.source.tree.java.PsiTypeParameterImpl|getAllMethodsAndTheirSubstitutors",
-            "com.intellij.psi.impl.source.tree.java.PsiTypeParameterImpl|getImplementsList",
-            "com.intellij.psi.impl.source.tree.java.PsiTypeParameterImpl|getSuperClass",
-            "com.intellij.psi.impl.source.tree.java.PsiTypeParameterImpl|getSupers",
-            "com.intellij.psi.impl.source.tree.java.PsiTypeParameterImpl|getSuperTypes",
-            "com.intellij.psi.impl.source.tree.java.PsiTypeParameterImpl|getVisibleSignatures",
+            "com.intellij.psi.impl.source.PsiTypeElementImpl|getInnermostComponentReferenceElement",
             "de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder|copy",
             "de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder|getChildren",
+            "de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder|getBody",
             "de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder|getModifierList",
             "de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder|getNameIdentifier",
             "de.plushnikov.intellij.plugin.psi.LombokLightMethodBuilder|getParameterList"
-            );
+    );
 
     public static JsonObject getPsiElementProps(PsiElement psiElement, JsonSerializationContext jsonSerializationContext,
                                           int elemDepth, int propDepth, Set<Object> visited) {
@@ -152,7 +98,9 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
             if (accessibleMethod == null || method.getParameterCount() > 0) {
                 continue;
             }
-            if (excludeMethods.contains(String.format("%s|%s", clazzName, methodName))) {
+            String methodId = String.format("%s|%s", clazzName, methodName);
+            boolean excluded = excludeMethods.contains(methodId);
+            if (excluded) {
                 props.addProperty(methodName, "excluded");
                 continue;
             }
@@ -166,10 +114,11 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
 //                jsonObject.add("val", resultValueJsonElement);
                 props.add(methodName, resultValueJsonElement);
             } catch (Throwable e) {
-//                props.addProperty(methodName, "props error:" + e.getMessage());
-                props.add(methodName, null);
-                GsonUtils.collectInvokeError(clazzName, methodName, e.getMessage());
-                LOGGER.error(String.format("gen props error, psiElement = [%s], methodName = [%s], e = [%s]", psiElement, methodName, e.getMessage()));
+                String errMsg = e.getMessage();
+                String errMsgForJson = String.format("gen props error, psiElement = [%s], methodName = [%s], e = [%s]", psiElement, methodName, errMsg);
+                props.addProperty(methodName, errMsgForJson);
+                GsonUtils.collectInvokeError(clazzName, methodName, errMsg);
+                LOGGER.error(errMsgForJson);
             }
         }
         return props;
