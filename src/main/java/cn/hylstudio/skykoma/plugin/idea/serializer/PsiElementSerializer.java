@@ -24,7 +24,11 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
     public JsonElement serialize(PsiElement psiElement, Type type, JsonSerializationContext jsonSerializationContext) {
         PsiFile containingFile = psiElement.getContainingFile();
         Set<Object> visited = new HashSet<>();
-        return serializeRecursively(containingFile, psiElement, jsonSerializationContext, 1, 1, visited);
+        JsonObject result = serializeRecursively(containingFile, psiElement, jsonSerializationContext, 1, 1, visited);
+        int lineNumber = PsiUtils.getLineNumber(psiElement);
+        String currentFileName = containingFile.getName();
+        LOGGER.info(String.format("processing filePath = [%s], lineNum = [%s]", currentFileName, lineNumber));
+        return result;
     }
 
     private static JsonObject serializeRecursively(PsiFile currentFile, PsiElement psiElement,
@@ -40,11 +44,11 @@ public class PsiElementSerializer extends BasePsiSerializer implements JsonSeria
             return jsonObject;
         }
         visited.add(psiElement);
-        int lineNumber = PsiUtils.getLineNumber(psiElement);
-        String currentFileName = currentFile.getName();
+//        int lineNumber = PsiUtils.getLineNumber(psiElement);
+//        String currentFileName = currentFile.getName();
         boolean needBreak = fillBasicInfo(currentFile, psiElement, jsonObject, elemDepth, propDepth);
-        LOGGER.info(String.format("processing filePath = [%s], lineNum = [%s], elemDepth = [%s], propDepth = [%s], needBreak = [%s]",
-                currentFileName, lineNumber, elemDepth, propDepth, needBreak));
+//        LOGGER.info(String.format("processing filePath = [%s], lineNum = [%s], elemDepth = [%s], propDepth = [%s], needBreak = [%s]",
+//                currentFileName, lineNumber, elemDepth, propDepth, needBreak));
         boolean hasProps = !needBreak;
         jsonObject.addProperty("hasProps", hasProps);
         if (needBreak) {
