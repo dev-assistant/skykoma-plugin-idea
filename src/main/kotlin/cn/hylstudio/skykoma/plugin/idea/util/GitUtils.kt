@@ -24,17 +24,17 @@ fun execCmd(cmd: String): Pair<String, String> {
     return Pair("", "")
 }
 
-val String?.gitCurrentHash: String
-    get() {
-        val cmd = "git -C $this rev-parse HEAD"
-        val output: Pair<String, String> = execCmd(cmd)
-        return output.first
-    }
-
-
-val String?.gitCurrentBranch: String
-    get() {
-        val cmd = "git -C $this rev-parse --abbrev-ref HEAD"
-        val output: Pair<String, String> = execCmd(cmd)
-        return output.first
-    }
+//val String?.gitCurrentHash: String
+//    get() {
+//        val cmd = "git -C $this rev-parse HEAD"
+//        val output: Pair<String, String> = execCmd(cmd)
+//        return output.first
+//    }
+//
+//
+//val String?.gitCurrentBranch: String
+//    get() {
+//        val cmd = "git -C $this rev-parse --abbrev-ref HEAD"
+//        val output: Pair<String, String> = execCmd(cmd)
+//        return output.first
+//    }

@@ -51,7 +51,11 @@ intellij {
 //    version.set("2022.1.4")
 //    version.set("2022.3.2")
     version.set("2023.1.5")
-    plugins.set(listOf("com.intellij.java"))
+    plugins.set(listOf(
+        "Git4Idea",
+        "com.intellij.java",
+        "org.jetbrains.idea.maven"
+    ))
 }
 
 dependencies {

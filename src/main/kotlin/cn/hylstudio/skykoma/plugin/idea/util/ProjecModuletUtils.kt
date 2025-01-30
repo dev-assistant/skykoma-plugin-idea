@@ -15,6 +15,9 @@ import com.intellij.openapi.wm.WindowManager
 import com.intellij.psi.PsiManager
 import com.intellij.ui.AppIcon
 import com.intellij.util.xml.DomManager
+import git4idea.repo.GitRepositoryManager
+import git4idea.util.GitFileUtils
+import icons.Git4ideaIcons
 import org.jetbrains.jps.model.java.JavaResourceRootType
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import javax.swing.JFrame
@@ -94,16 +97,20 @@ fun Project.closeProject() {
     }
 }
 
+val Project.repositoryManager: GitRepositoryManager get() = GitRepositoryManager.getInstance(this)
 val Project.currentHash: String
     get() {
-        val projectDir = this.basePath
-        return projectDir.gitCurrentHash
+//        val projectDir = this.basePath
+//        return projectDir.gitCurrentHash
+        return this.repositoryManager.repositories[0].currentRevision ?: ""
     }
+
 
 val Project.currentBranch: String
     get() {
-        val projectDir = this.basePath
-        return projectDir.gitCurrentBranch
+//        val projectDir = this.basePath
+//        return projectDir.gitCurrentBranch
+        return this.repositoryManager.repositories[0].currentBranch?.name ?: ""
     }
 
 fun filterFileByExtension(sourceRoot: VirtualFile, extension: String): List<VirtualFile> =
