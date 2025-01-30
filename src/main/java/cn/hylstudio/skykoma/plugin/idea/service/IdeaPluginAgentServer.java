@@ -9,6 +9,8 @@ public interface IdeaPluginAgentServer {
 
     void registerAsJupyterKernel();
 
+    String getKernelJsonPath();
+
     String genRegisterKernelCmd();
 
     void startJupyterKernel(String payload);

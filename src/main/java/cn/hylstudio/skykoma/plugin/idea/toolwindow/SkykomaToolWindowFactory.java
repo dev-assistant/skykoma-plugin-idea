@@ -1,6 +1,7 @@
 package cn.hylstudio.skykoma.plugin.idea.toolwindow;
 
 import cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer;
+import com.intellij.ide.actions.RevealFileAction;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -21,6 +22,7 @@ import javax.swing.text.Document;
 import java.awt.*;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
@@ -37,6 +39,7 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
     private final JButton btnStopAgentServer = new JButton("stop");
     private final JButton btnRestartAgentServer = new JButton("restart");
     private final JButton btnRegisterKernel = new JButton("register");
+    private final JButton btnOpenKernelFolder = new JButton("openFolder");
     private final JButton btnRefreshKernelStatus = new JButton("refresh");
     private final JButton btnStopKernel = new JButton("stop");
     private JComponent createRootComponent(Project project) {
@@ -86,8 +89,10 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         JPanel registerBtnPanel = new JBPanel<>(new FlowLayout(FlowLayout.LEFT));
 //        registerBtnPanel.setLayout(new BoxLayout(registerBtnPanel, BoxLayout.X_AXIS));
-        btnRegisterKernel.addActionListener(e -> getIdeaPluginAgentServer().registerAsJupyterKernel());
+        registerBtnPanel.add(btnOpenKernelFolder);
         registerBtnPanel.add(btnRegisterKernel);
+        btnOpenKernelFolder.addActionListener(e -> RevealFileAction.openFile(new File(getIdeaPluginAgentServer().getKernelJsonPath())));
+        btnRegisterKernel.addActionListener(e -> getIdeaPluginAgentServer().registerAsJupyterKernel());
         jupyterPanel.add(registerBtnPanel);
         txtRegisterKernelCmd.addFocusListener(new FocusListener() {
             @Override

@@ -65,7 +65,8 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         try {
             boolean registerSucc = registerCustomKernel(cmd);
             if (registerSucc) {
-                updateKernelJson(pythonExecutable);
+                String kernelJsonPath = getKernelJsonPath();
+                updateKernelJson(kernelJsonPath, pythonExecutable);
             }
         } catch (Exception e) {
             String registerError = String.format("registerAsJupyterKernel error, e = [%s]", e.getMessage());
@@ -94,11 +95,16 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         return succ;
     }
 
-    private static void updateKernelJson(String pythonExecutable) throws IOException {
+    @Override
+    public String getKernelJsonPath() {
         String kernelName = getKernelName();
         String folderName = String.format("kotlin_%s", kernelName);
         String userJupyterPath = getUserJupyterPath(folderName);
-        File kernelJsonFile = new File(userJupyterPath + File.separator + "kernel.json");
+        return userJupyterPath + File.separator + "kernel.json";
+    }
+
+    private static void updateKernelJson(String kernelJsonPath, String pythonExecutable) throws IOException {
+        File kernelJsonFile = new File(kernelJsonPath);
         if (!kernelJsonFile.exists()) {
             String registerFinished = String.format("updateKernelJson error, kernel.json not exist, path = " + kernelJsonFile.getAbsolutePath());
             info(LOGGER, registerFinished);
