@@ -63,8 +63,10 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         String cmd = genRegisterKernelCmd(pythonExecutable);
         info(LOGGER, String.format("registerAsJupyterKernel, cmd = [%s]", cmd));
         try {
-            registerCustomKernel(cmd);
-            updateKernelJson(pythonExecutable);
+            boolean registerSucc = registerCustomKernel(cmd);
+            if (registerSucc) {
+                updateKernelJson(pythonExecutable);
+            }
         } catch (Exception e) {
             String registerError = String.format("registerAsJupyterKernel error, e = [%s]", e.getMessage());
             error(LOGGER, registerError, e);
@@ -72,12 +74,24 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         }
     }
 
-    private static void registerCustomKernel(String cmd) throws IOException, InterruptedException {
+    private static boolean registerCustomKernel(String cmd) throws IOException, InterruptedException {
+        boolean succ = false;
         Process process = Runtime.getRuntime().exec(cmd);
-        process.waitFor(5, TimeUnit.SECONDS);
-        String registerFinished = String.format("registerAsJupyterKernel, execute finished, cmd = [%s]", cmd);
-        info(LOGGER, registerFinished);
-        SkykomaNotifier.notifyInfo(registerFinished);
+        boolean exited = process.waitFor(5, TimeUnit.SECONDS);
+        if (exited) {
+            int exitValue = process.exitValue();
+            if (exitValue == 0) {
+                succ = true;
+                SkykomaNotifier.notifyInfo("registerAsJupyterKernel succ");
+            } else {
+                String msg = String.format("registerAsJupyterKernel failed, exitValue = [%s], cmd = [%s]", exitValue, cmd);
+                info(LOGGER, msg);
+                SkykomaNotifier.notifyInfo(msg);
+            }
+        } else {
+            info(LOGGER, String.format("registerAsJupyterKernel timeout, cmd = [%s]", cmd));
+        }
+        return succ;
     }
 
     private static void updateKernelJson(String pythonExecutable) throws IOException {
@@ -85,6 +99,11 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         String folderName = String.format("kotlin_%s", kernelName);
         String userJupyterPath = getUserJupyterPath(folderName);
         File kernelJsonFile = new File(userJupyterPath + File.separator + "kernel.json");
+        if (!kernelJsonFile.exists()) {
+            String registerFinished = String.format("updateKernelJson error, kernel.json not exist, path = " + kernelJsonFile.getAbsolutePath());
+            info(LOGGER, registerFinished);
+            return;
+        }
         String kernelJsonStr = FileUtils.readFileToString(kernelJsonFile, Charset.defaultCharset());
         JsonObject kernelJson = JsonParser.parseString(kernelJsonStr).getAsJsonObject();
         JsonArray argvArr = kernelJson.get("argv").getAsJsonArray();
@@ -111,7 +130,7 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
 
     @Override
     public String genRegisterKernelCmd() {
-        return genRegisterKernelCmd(SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE_DEFAULT);
+        return genRegisterKernelCmd(getPythonExecutable());
     }
 
     private String genRegisterKernelCmd(String pythonExecutable) {
@@ -126,7 +145,7 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         argv.add("add-kernel");
         argv.add("--force");
         argv.add(String.format("--name %s", kernelName));
-        argv.add(String.format("--env SKYKOMA_AGENT_SERVER_API %s:%s/startJupyterKernel", listenAddress, port));
+        argv.add(String.format("--env SKYKOMA_AGENT_SERVER_API %s:%s", listenAddress, port));
         argv.add("--env SKYKOMA_AGENT_TYPE idea");
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
         int jupyterServerHbPort = propertiesComponent.getInt(SkykomaConstants.JUPYTER_SERVER_HB_PORT, SkykomaConstants.JUPYTER_SERVER_HB_PORT_DEFAULT);
@@ -212,6 +231,15 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         IdeaPluginAgentServerImpl.configPort = configPort;
     }
 
+
+    @Override
+    public String queryJupyterKernelStatus(String payload) {
+        if (jupyterServerThread != null && jupyterServerThread.isAlive()) {
+            return "RUNNING";
+        }
+        return "STOPPED";
+    }
+
     @Override
     public void startJupyterKernel(String payload) {
         stopJupyterKernel();
@@ -257,6 +285,8 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
                     jupyterServerThread.interrupt();
                 }
             } catch (Exception ignored) {
+            } finally {
+                jupyterServerThread = null;
             }
         }
         LOGGER.info("stopJupyterKernel finished");

@@ -49,6 +49,8 @@ public class AgentHttpApiVerticle extends AbstractVerticle {
         router.route().handler(BodyHandler.create());
         // router.route().handler(this::checkAuth);
         router.route(HttpMethod.POST, "/startJupyterKernel").handler(this::startJupyterKernel);
+        router.route(HttpMethod.POST, "/stopJupyterKernel").handler(this::stopJupyterKernel);
+        router.route(HttpMethod.POST, "/queryJupyterKernelStatus").handler(this::queryJupyterKernelStatus);
         // Create the HTTP server
         vertx.createHttpServer()
                 // Handle every request using the router
@@ -75,7 +77,25 @@ public class AgentHttpApiVerticle extends AbstractVerticle {
         IdeaPluginAgentServer ideaPluginAgentServer =
                 ApplicationManager.getApplication().getService(IdeaPluginAgentServer.class);
         ideaPluginAgentServer.startJupyterKernel(payload);
-        JsonResult<Object> jsonResult = JsonResult.succResult("startJupyterKernelSucc", null);
+        JsonResult<Object> jsonResult = JsonResult.succResult("startJupyterKernelSucc", true);
+        responseJson(routingContext, jsonResult);
+    }
+    private void stopJupyterKernel(RoutingContext routingContext) {
+        String payload = routingContext.body().asString();
+        info(LOGGER, String.format("stopJupyterKernel, payload = [%s]", payload));
+        IdeaPluginAgentServer ideaPluginAgentServer =
+                ApplicationManager.getApplication().getService(IdeaPluginAgentServer.class);
+        ideaPluginAgentServer.stopJupyterKernel();
+        JsonResult<Object> jsonResult = JsonResult.succResult("stopJupyterKernelSucc", true);
+        responseJson(routingContext, jsonResult);
+    }
+    private void queryJupyterKernelStatus(RoutingContext routingContext) {
+        String payload = routingContext.body().asString();
+        LOGGER.debug(String.format("queryJupyterKernelStatus, payload = [%s]", payload));
+        IdeaPluginAgentServer ideaPluginAgentServer =
+                ApplicationManager.getApplication().getService(IdeaPluginAgentServer.class);
+        String result = ideaPluginAgentServer.queryJupyterKernelStatus(payload);
+        JsonResult<Object> jsonResult = JsonResult.succResult("queryJupyterKernelStatusSucc", result);
         responseJson(routingContext, jsonResult);
     }
 

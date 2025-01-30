@@ -485,22 +485,20 @@ Service：增强自带的创建类过程，根据类名猜测正确的包名，�
 ```
 ### 3.作为jupyter kernel注册
 #### 3.1.安装jupyter kotlin kernel
-```
+```bash
 # 安装jupyterlab
+# virtualenv skykoma
+conda create -n skykoma python=3.12 -y
 SKYKOMA_PYTHON_HOME=$CONDA_HOME/envs/skykoma
 SKYKOMA_PYTHON_BIN=$SKYKOMA_PYTHON_HOME/bin
-SKYKOMA_PIP=$SKYKOMA_PYTHON_BIN/pip
-RUN_KOTLIN_KERNEL_DIR=$SKYKOMA_PYTHON_HOME/lib/python3.8/site-packages/run_kotlin_kernel
-$CONDA_HOME/bin/conda create -n skykoma python=3.8 -y
-
-$SKYKOMA_PIP install jupyterlab kotlin-jupyter-kernel jupyterlab-lsp  git+https://github.com/956237586/jupyter_client.git@v8.4.3
-# 清华镜像加速安装jupyterlab
-$SKYKOMA_PIP install -i https://pypi.tuna.tsinghua.edu.cn/simple jupyterlab kotlin-jupyter-kernel jupyterlab-lsp 
- git+https://github.com/956237586/jupyter_client.git@v8.4.3
+$SKYKOMA_PYTHON_BIN/python -m pip install jupyterlab kotlin-jupyter-kernel jupyterlab-lsp git+https://github.com/956237586/jupyter_client.git@v8.4.3
+# 清华镜像加速安装jupyterlab选项
+-i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 #### 3.2.修改run_kernel.py
 路径是`site-packages\run_kotlin_kernel\run_kernel.py`，修改部分为`#for skykoma-agent-idea begin`到`#for skykoma-agent-idea end`
 ```
+RUN_KOTLIN_KERNEL_DIR=$SKYKOMA_PYTHON_HOME/lib/python3.8/site-packages/run_kotlin_kernel
 mv $RUN_KOTLIN_KERNEL_DIR/run_kernel.py $RUN_KOTLIN_KERNEL_DIR/run_kernel.py.bak
 wget -O $RUN_KOTLIN_KERNEL_DIR/run_kernel.py https://raw.githubusercontent.com/956237586/kotlin-jupyter/ideav0.0.1/distrib/run_kotlin_kernel/run_kernel.py
 ```
