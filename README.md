@@ -500,7 +500,7 @@ $SKYKOMA_PYTHON_BIN/python -m pip install jupyterlab kotlin-jupyter-kernel jupyt
 ```
 RUN_KOTLIN_KERNEL_DIR=$SKYKOMA_PYTHON_HOME/lib/python3.8/site-packages/run_kotlin_kernel
 mv $RUN_KOTLIN_KERNEL_DIR/run_kernel.py $RUN_KOTLIN_KERNEL_DIR/run_kernel.py.bak
-wget -O $RUN_KOTLIN_KERNEL_DIR/run_kernel.py https://raw.githubusercontent.com/956237586/kotlin-jupyter/ideav0.0.1/distrib/run_kotlin_kernel/run_kernel.py
+wget -O $RUN_KOTLIN_KERNEL_DIR/run_kernel.py https://raw.githubusercontent.com/956237586/kotlin-jupyter/ideav0.0.2/distrib/run_kotlin_kernel/run_kernel.py
 ```
 #### 3.3.启动jupyterlab
 ```
