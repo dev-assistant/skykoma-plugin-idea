@@ -1,6 +1,7 @@
 package cn.hylstudio.skykoma.plugin.idea;
 
 import com.google.common.collect.Sets;
+import org.apache.commons.lang.StringUtils;
 
 import java.util.Collections;
 import java.util.Set;
@@ -66,7 +67,15 @@ public class SkykomaConstants {
     public static final int JUPYTER_SERVER_STDIN_PORT_DEFAULT = 2337;
     public static final int JUPYTER_SERVER_CONTROL_PORT_DEFAULT = 2338;
     public static final String JUPYTER_PYTHON_EXECUTABLE = PLUGIN_CONFIG_PREFIX + "jupyter_python_executable";
-    public static final String JUPYTER_PYTHON_EXECUTABLE_DEFAULT = "python";
+    public static final String JUPYTER_PYTHON_EXECUTABLE_DEFAULT ;
+    static {
+        String pythonFromEnv = System.getenv("SKYKOMA_JUPYTER_PYTHON_EXECUTABLE");
+        if (StringUtils.isNotEmpty(pythonFromEnv)) {
+            JUPYTER_PYTHON_EXECUTABLE_DEFAULT = pythonFromEnv;
+        } else {
+            JUPYTER_PYTHON_EXECUTABLE_DEFAULT = "python";
+        }
+    }
     public static final String JUPYTER_KERNEL_NAME = PLUGIN_CONFIG_PREFIX + "jupyter_kernel_name";
     public static final String JUPYTER_KERNEL_NAME_PREFIX = "skykoma-agent-";
     public static final String JUPYTER_KERNEL_NAME_DEFAULT = "idea";

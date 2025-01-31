@@ -123,12 +123,12 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
         JPanel projectStructurePanel = new JBPanel<>();
         projectStructurePanel.setLayout(new BoxLayout(projectStructurePanel, BoxLayout.Y_AXIS));
 
-        JPanel pathSelectorPanel = new JBPanel<>(new FlowLayout(FlowLayout.LEFT));
+        JPanel pathSelectorPanel = new JBPanel<>(new BorderLayout());
         TextFieldWithBrowseButton sdkSelector = new TextFieldWithBrowseButton();
         sdkSelector.addBrowseFolderListener("Select Sdk Path", null, null,
                 FileChooserDescriptorFactory.createSingleFolderDescriptor());
         sdkSelector.setText(getCurrentSdkHomePath(project));
-        pathSelectorPanel.add(sdkSelector);
+        pathSelectorPanel.add(sdkSelector,BorderLayout.NORTH);
         projectStructurePanel.add(pathSelectorPanel);
 
         JPanel pathSelectorBtnsPanel = new JBPanel<>(new FlowLayout(FlowLayout.LEFT));
@@ -151,13 +151,22 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
         pathSelectorBtnsPanel.add(reImportMaven);
 
 //        JButton testBtn = new JButton("test1");
-//        testBtn.addActionListener(e -> System.out.println("clicked"));
+//        testBtn.addActionListener(e -> checkoutRemoteBranch(project));
 //        pathSelectorBtnsPanel.add(testBtn);
         projectStructurePanel.add(pathSelectorBtnsPanel);
         vbox.add(projectStructurePanel);
 
         return container;
     }
+
+//    private void checkoutRemoteBranch(Project project) {
+//        ApplicationManager.getApplication().runWriteAction(() -> {
+//            GitRepositoryManager repositoryManager = GitRepositoryManager.getInstance(project);
+//            List<GitRepository> allRepositories = repositoryManager.getRepositories();
+//            @NotNull String remoteBranchName = "origin/dev";
+//            GitBranchPopupActions.RemoteBranchActions.CheckoutRemoteBranchAction.checkoutRemoteBranch(project, allRepositories, remoteBranchName);
+//        });
+//    }
 
     private static String getCurrentSdkHomePath(Project project) {
         ProjectRootManager projectRootManager = ProjectRootManager.getInstance(project);

@@ -2,6 +2,7 @@ package cn.hylstudio.skykoma.plugin.idea.util
 
 import com.intellij.ide.DataManager
 import com.intellij.ide.GeneralSettings
+import com.intellij.ide.impl.TrustedPathsSettings
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -11,6 +12,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.util.io.toNioPath
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.WindowManager
@@ -20,6 +22,7 @@ import com.intellij.util.xml.DomManager
 import git4idea.repo.GitRepositoryManager
 import org.jetbrains.jps.model.java.JavaResourceRootType
 import org.jetbrains.jps.model.java.JavaSourceRootType
+import java.io.File
 import javax.swing.JFrame
 
 val Module.rootManager: ModuleRootManager get() = ModuleRootManager.getInstance(this)
@@ -51,20 +54,30 @@ fun getOpenedProjects(): Array<Project> {
     return ProjectManager.getInstance().openProjects
 }
 
-fun openProjectByFolder(projectFolderDir: String): Project? {
+fun openProjectByFolder(projectFolderDir: String, autoTrustParent: Boolean? = false): Project? {
     val openedProjects: Array<Project> = getOpenedProjects()
     val project: Project? = openedProjects.firstOrNull { it.basePath == projectFolderDir }
     if (project != null) {
         project.requestFocus()
         return project
     }
+    if (autoTrustParent != null && autoTrustParent) {
+        projectFolderDir.trustParent()
+    }
     val GeneralSettings: GeneralSettings = GeneralSettings.getInstance()
     // com.intellij.ide.GeneralSettings#OPEN_PROJECT_NEW_WINDOW
     val OPEN_PROJECT_SAME_WINDOW = 1
-    if (GeneralSettings.confirmOpenNewProject != OPEN_PROJECT_SAME_WINDOW) {
+    val oldVal = GeneralSettings.confirmOpenNewProject
+    var hasUpdated = false
+    if (oldVal != OPEN_PROJECT_SAME_WINDOW) {
         GeneralSettings.confirmOpenNewProject = OPEN_PROJECT_SAME_WINDOW
+        hasUpdated = true;
     }
-    return ProjectManager.getInstance().loadAndOpenProject(projectFolderDir)
+    val result: Project? = ProjectManager.getInstance().loadAndOpenProject(projectFolderDir)
+    if (hasUpdated) {
+        GeneralSettings.confirmOpenNewProject = oldVal
+    }
+    return result
 }
 
 fun filterProjectByName(projectName: String): Project? {
@@ -77,6 +90,16 @@ val Project.moduleManager: ModuleManager get() = ModuleManager.getInstance(this)
 val Project.domManager: DomManager get() = DomManager.getDomManager(this)
 val Project.rootManager: ProjectRootManager get() = ProjectRootManager.getInstance(this)
 val Project.modules: Array<Module> get() = this.moduleManager.modules
+fun String.trustParent(): Boolean {
+    val parentPath = File(this).parent.toNioPath()
+    var trustedPathsSettings = TrustedPathsSettings.getInstance()
+    if (trustedPathsSettings.isPathTrusted(parentPath)) {
+        return false
+    }
+    trustedPathsSettings.addTrustedPath(parentPath.toString())
+    println("trusted path added: $parentPath")
+    return true
+}
 
 fun Project.printInfo() {
     val it = this
