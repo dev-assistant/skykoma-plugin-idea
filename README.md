@@ -517,7 +517,8 @@ Service：增强自带的创建类过程，根据类名猜测正确的包名，�
     ]
 }
 ```
-## 编译
+## 开发
+### 编译
 需要使用jdk17运行gradlew
 
 `./gradlew buildPlugin -PprojVersion=VERSION`
