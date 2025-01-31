@@ -34,7 +34,8 @@ jobs:
       uses: gradle/gradle-build-action@v2.9.0
       with:
         gradle-version: '7.4.2'
-        arguments: buildPlugin publishPlugin -PprojVersion=${{steps.get_version.outputs.VERSION}} -PpublishToken={{secrets.IDEA_PUBLISH_TOKEN}}
+        arguments: buildPlugin -PprojVersion=${{steps.get_version.outputs.VERSION}}
+#        arguments: buildPlugin publishPlugin -PprojVersion=${{steps.get_version.outputs.VERSION}} -PpublishToken={{secrets.IDEA_PUBLISH_TOKEN}}
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
