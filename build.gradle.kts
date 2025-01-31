@@ -136,10 +136,10 @@ tasks {
 //        }
 //    }
     publishPlugin {
-        val config = loadProperties(file("local.properties").path)
         val publishToken = if (project.hasProperty("publishToken")) {
             project.findProperty("publishToken") as String
         } else {
+            val config = loadProperties(file("local.properties").path)
             config.getProperty("publishToken", "")
         }
         token.set(publishToken)
