@@ -7,7 +7,7 @@
     <id>cn.hylstudio.skykoma.plugin.idea</id>
 
     <!-- Text to display as name on Preferences/Settings | Plugin page -->
-    <name>Skykoma Plugin For IDEA</name>
+    <name>Skykoma For IDEA</name>
 
     <!-- Product and plugin compatibility requirements -->
     <depends>com.intellij.modules.platform</depends>
@@ -18,7 +18,9 @@
     <!-- Text to display as description on Preferences/Settings | Plugin page -->
     <description>
         <![CDATA[
-      Skykoma Plugin For IDEA
+      Skykoma For IDEA
+      1. support register idea as custom jupyter kernel
+      2. support ast analysis
     ]]>
     </description>
     <change-notes>
