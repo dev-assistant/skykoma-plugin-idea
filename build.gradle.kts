@@ -32,7 +32,7 @@ group = "cn.hylstudio.skykoma.plugin.idea"
 version = if (project.hasProperty("projVersion")) {
     project.findProperty("projVersion") as String
 } else {
-    "v0.0.23"
+    "v0.0.27"
 }
 
 kotlin {
@@ -115,10 +115,10 @@ tasks {
         untilBuild.set("233.*")
     }
 
-    verifyPluginConfiguration{
+    verifyPluginConfiguration {
         kotlinStdlibDefaultDependency.set(false)
     }
-    
+
 //    prepareSandbox {
 //        doLast {
 //            val config = loadProperties(file("local.properties").path)
@@ -135,6 +135,16 @@ tasks {
 //            }
 //        }
 //    }
+    publishPlugin {
+        val config = loadProperties(file("local.properties").path)
+        val publishToken = if (project.hasProperty("publishToken")) {
+            project.findProperty("publishToken") as String
+        } else {
+            config.getProperty("publishToken", "")
+        }
+        token.set(publishToken)
+        host.set("https://github.com/dev-assistant/skykoma-plugin-idea")
+    }
 }
 
 fun PrepareSandboxTask.dependencySrcKotlincPath(): String {
