@@ -7,7 +7,7 @@
     <id>cn.hylstudio.skykoma.plugin.idea</id>
 
     <!-- Text to display as name on Preferences/Settings | Plugin page -->
-    <name>Skykoma For IDEA</name>
+    <name>Skykoma</name>
 
     <!-- Product and plugin compatibility requirements -->
     <depends>com.intellij.modules.platform</depends>
