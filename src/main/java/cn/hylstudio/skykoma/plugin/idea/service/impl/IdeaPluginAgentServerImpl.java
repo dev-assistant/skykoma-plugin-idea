@@ -113,9 +113,14 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         String kernelJsonStr = FileUtils.readFileToString(kernelJsonFile, Charset.defaultCharset());
         JsonObject kernelJson = JsonParser.parseString(kernelJsonStr).getAsJsonObject();
         JsonArray argvArr = kernelJson.get("argv").getAsJsonArray();
-        // python -> absPath
+        //  "argv": [
+        //    "path\\to\\python.exe",
+        //    "-m",
+        //    "run_kotlin_kernel_idea",
+        //    "{connection_file}"
+        //  ],
         argvArr.set(0, new JsonPrimitive(pythonExecutable));
-        // TODO replace custom run_kernel cmd
+        argvArr.set(2, new JsonPrimitive("run_kotlin_kernel_idea"));
         FileUtils.writeStringToFile(kernelJsonFile, GsonUtils.JUPYTER_KERNEL_JSON.toJson(kernelJson),
                 Charset.defaultCharset());
     }

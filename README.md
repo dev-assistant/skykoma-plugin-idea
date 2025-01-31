@@ -1,13 +1,48 @@
+- [Skykoma Plugin For IDEA](#skykoma-plugin-for-idea)
+  - [1.作为jupyter kernel注册](#1作为jupyter-kernel注册)
+    - [1.1.安装jupyter kotlin kernel](#11安装jupyter-kotlin-kernel)
+    - [1.2.启动jupyterlab](#12启动jupyterlab)
+  - [2.模板代码自动生成](#2模板代码自动生成)
+    - [2.1.静态生成](#21静态生成)
+    - [2.2.动态生成](#22动态生成)
+  - [3.获取当前项目语义并上报](#3获取当前项目语义并上报)
+      - [3.1.项目信息](#31项目信息)
+    - [3.2.语法信息](#32语法信息)
+    - [3.3.语义信息](#33语义信息)
+  - [编译](#编译)
 # Skykoma Plugin For IDEA
+
 尝试尽可能减少人工对IDE的重复操作
-- 1.模板代码自动生成
-- 2.获取当前项目语义并上报
-- 3.支持将idea作为jupyter-kotlin-kernel注册
-## 功能说明
-### 1.模板代码自动生成
+- 1.支持将idea作为jupyter-kotlin-kernel注册
+- 2.模板代码自动生成
+- 3.获取当前项目语义并上报
+## 1.作为jupyter kernel注册
+### 1.1.安装jupyter kotlin kernel
+```bash
+# 安装jupyterlab
+# virtualenv skykoma
+conda create -n skykoma python=3.12 -y
+SKYKOMA_PYTHON_HOME=$CONDA_HOME/envs/skykoma
+SKYKOMA_PYTHON_BIN=$SKYKOMA_PYTHON_HOME/bin
+$SKYKOMA_PYTHON_BIN/python -m pip install jupyterlab kotlin-jupyter-kernel jupyterlab-lsp git+https://github.com/956237586/run_kotlin_kernel_idea.git@v0.1 git+https://github.com/956237586/jupyter_client.git@v8.4.3
+# 清华镜像加速安装jupyterlab选项
+-i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+### 1.2.启动jupyterlab
+```
+#default cmd
+$SKYKOMA_PYTHON_BIN/jupyter lab
+#set ip
+$SKYKOMA_PYTHON_BIN/jupyter lab --ip=0.0.0.0 
+#allow root
+$SKYKOMA_PYTHON_BIN/jupyter lab --ip=0.0.0.0 --allow-root 
+```
+demo见[这个文件](./demo/demo.ipynb)
+
+## 2.模板代码自动生成
 模板代码生成主要依赖于LiveTemplate实现，分为静态生成和动态生成，静态生成是上下文无关的，动态生成可感知代码上下文。
 
-#### 1.1.静态生成
+### 2.1.静态生成
 如@Autowire @Column 之类的，使用idea自带API完成命名风格的转换。所有触发词可自行到设置中修改。
 - ORM列补全
 ```
@@ -95,7 +130,7 @@ if (code == null) {
 }
 ```
 
-#### 动态生成
+### 2.2.动态生成
 - 日志
 
 打印日志记录当前方法参数和局部变量，如果是Controller层则自动记录uid
@@ -148,8 +183,8 @@ public void someMethod(SomeOtherClass v){
 //TODO
 Service：增强自带的创建类过程，根据类名猜测正确的包名，一键生成带注解的Service类和接口并实现对应接口满足主流项目的风格要求，减少人工操作。
 
-### 2.获取当前项目语义并上报
-##### 2.1.项目信息
+## 3.获取当前项目语义并上报
+#### 3.1.项目信息
 根据当前项目自动识别文件树，并追踪文件变化
 - 文件树
 - 源码、测试源码、资源、测试资源识别
@@ -274,7 +309,7 @@ Service：增强自带的创建类过程，根据类名猜测正确的包名，�
 }
 ```
 
-##### 2.2.语法信息
+### 3.2.语法信息
 根据PsiFile获取PsiElement的树状结构，如：
 ```json
 {
@@ -314,8 +349,7 @@ Service：增强自带的创建类过程，根据类名猜测正确的包名，�
     ]
 }
 ```
-
-##### 2.3.语义信息
+### 3.3.语义信息
 根据PsiElement不同的节点类型，会附加不同的语义信息。包括：
 - 类之间的继承关系
 - 接口之间继承关系
@@ -482,34 +516,6 @@ Service：增强自带的创建类过程，根据类名猜测正确的包名，�
         "org.springframework.data.repository.query.QueryByExampleExecutor<cn.hylstudio.mdse.demo.realworld.entity.mysql.RealWorldUser>"
     ]
 }
-```
-### 3.作为jupyter kernel注册
-#### 3.1.安装jupyter kotlin kernel
-```bash
-# 安装jupyterlab
-# virtualenv skykoma
-conda create -n skykoma python=3.12 -y
-SKYKOMA_PYTHON_HOME=$CONDA_HOME/envs/skykoma
-SKYKOMA_PYTHON_BIN=$SKYKOMA_PYTHON_HOME/bin
-$SKYKOMA_PYTHON_BIN/python -m pip install jupyterlab kotlin-jupyter-kernel jupyterlab-lsp git+https://github.com/956237586/jupyter_client.git@v8.4.3
-# 清华镜像加速安装jupyterlab选项
--i https://pypi.tuna.tsinghua.edu.cn/simple
-```
-#### 3.2.修改run_kernel.py
-路径是`site-packages\run_kotlin_kernel\run_kernel.py`，修改部分为`#for skykoma-agent-idea begin`到`#for skykoma-agent-idea end`
-```
-RUN_KOTLIN_KERNEL_DIR=$SKYKOMA_PYTHON_HOME/lib/python3.8/site-packages/run_kotlin_kernel
-mv $RUN_KOTLIN_KERNEL_DIR/run_kernel.py $RUN_KOTLIN_KERNEL_DIR/run_kernel.py.bak
-wget -O $RUN_KOTLIN_KERNEL_DIR/run_kernel.py https://raw.githubusercontent.com/956237586/kotlin-jupyter/ideav0.0.2/distrib/run_kotlin_kernel/run_kernel.py
-```
-#### 3.3.启动jupyterlab
-```
-#default cmd
-$SKYKOMA_PYTHON_BIN/jupyter lab
-#set ip
-$SKYKOMA_PYTHON_BIN/jupyter lab --ip=0.0.0.0 
-#allow root
-$SKYKOMA_PYTHON_BIN/jupyter lab --ip=0.0.0.0 --allow-root 
 ```
 ## 编译
 需要使用jdk17运行gradlew
