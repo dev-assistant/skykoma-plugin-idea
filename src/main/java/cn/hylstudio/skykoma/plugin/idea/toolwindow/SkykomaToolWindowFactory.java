@@ -1,10 +1,15 @@
 package cn.hylstudio.skykoma.plugin.idea.toolwindow;
 
 import cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer;
+import cn.hylstudio.skykoma.plugin.idea.util.ProjectUtils;
 import com.intellij.ide.actions.RevealFileAction;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.projectRoots.Sdk;
+import com.intellij.openapi.roots.ProjectRootManager;
+import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.TitledSeparator;
@@ -42,6 +47,7 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
     private final JButton btnOpenKernelFolder = new JButton("openFolder");
     private final JButton btnRefreshKernelStatus = new JButton("refresh");
     private final JButton btnStopKernel = new JButton("stop");
+
     private JComponent createRootComponent(Project project) {
         JPanel container = new JPanel(new BorderLayout());
         container.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
@@ -52,7 +58,7 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         vbox.add(new TitledSeparator("Agent Server"));
 
-        JPanel agentServerControlPanel = new JBPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel agentServerControlPanel = new JBPanel<>(new FlowLayout(FlowLayout.LEFT));
 //        agentServerControlPanel.setLayout(new BoxLayout(agentServerControlPanel, BoxLayout.X_AXIS));
         agentServerControlPanel.add(btnStartAgentServer);
         agentServerControlPanel.add(btnStopAgentServer);
@@ -111,9 +117,55 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
             }
         });
 
-
         vbox.add(jupyterPanel);
+
+        vbox.add(new TitledSeparator("Project Structure"));
+        JPanel projectStructurePanel = new JBPanel<>();
+        projectStructurePanel.setLayout(new BoxLayout(projectStructurePanel, BoxLayout.Y_AXIS));
+
+        JPanel pathSelectorPanel = new JBPanel<>(new FlowLayout(FlowLayout.LEFT));
+        TextFieldWithBrowseButton sdkSelector = new TextFieldWithBrowseButton();
+        sdkSelector.addBrowseFolderListener("Select Sdk Path", null, null,
+                FileChooserDescriptorFactory.createSingleFolderDescriptor());
+        sdkSelector.setText(getCurrentSdkHomePath(project));
+        pathSelectorPanel.add(sdkSelector);
+        projectStructurePanel.add(pathSelectorPanel);
+
+        JPanel pathSelectorBtnsPanel = new JBPanel<>(new FlowLayout(FlowLayout.LEFT));
+        JButton refreshCurrentSdk = new JButton("refresh");
+        JButton btnUpdateSdk = new JButton("updateSdk");
+        refreshCurrentSdk.addActionListener(e -> sdkSelector.setText(getCurrentSdkHomePath(project)));
+        btnUpdateSdk.addActionListener(e ->
+                ApplicationManager.getApplication().runWriteAction(() ->
+                        ProjectUtils.updateProjectJdk(sdkSelector.getText(), project)
+                )
+        );
+        JButton reImportMaven = new JButton("reimportMaven");
+        reImportMaven.addActionListener(e ->
+                ApplicationManager.getApplication().runWriteAction(() ->
+                        ProjectUtils.mavenReImport(project)
+                )
+        );
+        pathSelectorBtnsPanel.add(refreshCurrentSdk);
+        pathSelectorBtnsPanel.add(btnUpdateSdk);
+        pathSelectorBtnsPanel.add(reImportMaven);
+
+//        JButton testBtn = new JButton("test1");
+//        testBtn.addActionListener(e -> System.out.println("clicked"));
+//        pathSelectorBtnsPanel.add(testBtn);
+        projectStructurePanel.add(pathSelectorBtnsPanel);
+        vbox.add(projectStructurePanel);
+
         return container;
+    }
+
+    private static String getCurrentSdkHomePath(Project project) {
+        ProjectRootManager projectRootManager = ProjectRootManager.getInstance(project);
+        Sdk projectSdk = projectRootManager.getProjectSdk();
+        if (projectSdk != null && projectSdk.getHomePath() != null) {
+            return projectSdk.getHomePath();
+        }
+        return "";
     }
 
     private static IdeaPluginAgentServer getIdeaPluginAgentServer() {

@@ -1,6 +1,7 @@
 package cn.hylstudio.skykoma.plugin.idea.util
 
 import com.intellij.ide.DataManager
+import com.intellij.ide.GeneralSettings
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -9,6 +10,7 @@ import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.roots.ModuleRootManager
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.WindowManager
@@ -16,8 +18,6 @@ import com.intellij.psi.PsiManager
 import com.intellij.ui.AppIcon
 import com.intellij.util.xml.DomManager
 import git4idea.repo.GitRepositoryManager
-import git4idea.util.GitFileUtils
-import icons.Git4ideaIcons
 import org.jetbrains.jps.model.java.JavaResourceRootType
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import javax.swing.JFrame
@@ -58,6 +58,12 @@ fun openProjectByFolder(projectFolderDir: String): Project? {
         project.requestFocus()
         return project
     }
+    val GeneralSettings: GeneralSettings = GeneralSettings.getInstance()
+    // com.intellij.ide.GeneralSettings#OPEN_PROJECT_NEW_WINDOW
+    val OPEN_PROJECT_SAME_WINDOW = 1
+    if (GeneralSettings.confirmOpenNewProject != OPEN_PROJECT_SAME_WINDOW) {
+        GeneralSettings.confirmOpenNewProject = OPEN_PROJECT_SAME_WINDOW
+    }
     return ProjectManager.getInstance().loadAndOpenProject(projectFolderDir)
 }
 
@@ -69,6 +75,7 @@ val Project.psiManager: PsiManager get() = PsiManager.getInstance(this)
 val Project.fileEditorManager: FileEditorManager get() = FileEditorManager.getInstance(this)
 val Project.moduleManager: ModuleManager get() = ModuleManager.getInstance(this)
 val Project.domManager: DomManager get() = DomManager.getDomManager(this)
+val Project.rootManager: ProjectRootManager get() = ProjectRootManager.getInstance(this)
 val Project.modules: Array<Module> get() = this.moduleManager.modules
 
 fun Project.printInfo() {
@@ -78,8 +85,10 @@ fun Project.printInfo() {
     val projectDirName: String = getDirName(projectDir)
     val currentBranch = it.currentBranch
     val currentHash = it.currentHash
+    val projectSdk = it.rootManager.projectSdk?.homePath ?: ""
     println("projectName:$projectName, basePath:$projectDir, projectDirName:$projectDirName")
     println("currentBranch:$currentBranch, currentHash:$currentHash")
+    println("projectSdk:$projectSdk")
     println()
 }
 
@@ -88,6 +97,18 @@ fun Project.requestFocus() {
         val frame: JFrame? = WindowManager.getInstance().getFrame(this)
         frame!!.toFront()
         AppIcon.getInstance().requestFocus(frame)
+    }
+}
+
+fun Project.updateJdk(homePath: String) {
+    invokeLater {
+        ProjectUtils.updateProjectJdk(homePath, this)
+    }
+}
+
+fun Project.mavenReImport() {
+    invokeLater {
+        ProjectUtils.mavenReImport(this)
     }
 }
 
