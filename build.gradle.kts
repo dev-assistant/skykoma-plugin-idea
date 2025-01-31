@@ -136,11 +136,17 @@ tasks {
 //        }
 //    }
     publishPlugin {
-        val publishToken = if (project.hasProperty("publishToken")) {
-            project.findProperty("publishToken") as String
+        var publishToken = ""
+        if (project.hasProperty("publishToken")) {
+            publishToken = project.findProperty("publishToken") as String
         } else {
-            val config = loadProperties(file("local.properties").path)
-            config.getProperty("publishToken", "")
+            val localConfig = file("local.properties")
+            if (localConfig.exists()) {
+                val config = loadProperties(localConfig.path)
+                publishToken = config.getProperty("publishToken", "")
+            } else {
+                println("error: can't find public token")
+            }
         }
         token.set(publishToken)
         host.set("https://github.com/dev-assistant/skykoma-plugin-idea")
