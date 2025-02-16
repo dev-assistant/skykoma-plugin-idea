@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.error;
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.info;
@@ -37,7 +38,8 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
     private static final Vertx vertx = Vertx.vertx();
     private static String configAddress;
     private static Integer configPort;
-    private static Thread jupyterServerThread = null;
+    private Thread jupyterServerThread;
+    private final AtomicReference<String> kernelStatus = new AtomicReference<>("STOPPED");
     private static AgentHttpApiVerticle agentHttpApiVerticle;
 
     @Override
@@ -245,61 +247,74 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
 
     @Override
     public String queryJupyterKernelStatus(String payload) {
-        if (jupyterServerThread != null && jupyterServerThread.isAlive()) {
-            return "RUNNING";
-        }
-        return "STOPPED";
+        return kernelStatus.get();
     }
 
     @Override
-    public void startJupyterKernel(String payload) {
-        stopJupyterKernel();
+    public synchronized void startJupyterKernel(String payload) {
+        if (!kernelStatus.compareAndSet("STOPPED", "STARTING")) {
+            LOGGER.info("startJupyterKernel skipped, current status = " + kernelStatus.get());
+            return;
+        }
+        stopJupyterKernel();  // 确保不会有旧的实例
         IdeaPluginDescriptor ideaPluginDescriptor = Arrays.stream(PluginManagerCore.getPlugins())
                 .filter(v -> v.getPluginId().getIdString().equals(SkykomaConstants.PLUGIN_ID))
                 .findFirst().orElse(null);
+
         if (ideaPluginDescriptor == null) {
             SkykomaNotifier.notifyError("startJupyterKernel failed, can't find ideaPluginDescriptor");
+            kernelStatus.set("STOPPED");
             return;
         }
+
         ClassLoader pluginClassLoader = ideaPluginDescriptor.getPluginClassLoader();
         if (pluginClassLoader == null) {
             SkykomaNotifier.notifyError("startJupyterKernel failed, can't find pluginClassLoader");
+            kernelStatus.set("STOPPED");
             return;
         }
-        try {
-            jupyterServerThread = new Thread(() -> {
+
+        jupyterServerThread = new Thread(() -> {
+            try {
                 KotlinReplWrapper wrapper = KotlinReplWrapper.getInstance(pluginClassLoader);
+                kernelStatus.set("RUNNING");
                 wrapper.makeEmbeddedRepl(payload);
-            });
-            jupyterServerThread.setContextClassLoader(pluginClassLoader);
-            jupyterServerThread.start();
-            SkykomaNotifier.notifyInfo("startJupyterKernel succ");
-        } catch (Exception e) {
-            String startJupyterKernelErrorMsg = String.format("startJupyterKernel has error, e = [%s]", e.getMessage());
-            error(LOGGER, startJupyterKernelErrorMsg, e);
-            SkykomaNotifier.notifyError(startJupyterKernelErrorMsg);
-        }
+                LOGGER.info("Jupyter kernel started successfully.");
+            } catch (Exception e) {
+                String errorMsg = String.format("startJupyterKernel error: %s", e.getMessage());
+                LOGGER.error(errorMsg, e);
+                SkykomaNotifier.notifyError(errorMsg);
+                kernelStatus.set("STOPPED");
+            }
+        });
+
+        jupyterServerThread.setContextClassLoader(pluginClassLoader);
+        jupyterServerThread.setDaemon(true);  // 设置守护线程
+        jupyterServerThread.start();
+
+        SkykomaNotifier.notifyInfo("Jupyter kernel is starting...");
     }
 
     @Override
-    public void stopJupyterKernel() {
-        if (jupyterServerThread == null) {
+    public synchronized void stopJupyterKernel() {
+        if (jupyterServerThread == null || !kernelStatus.compareAndSet("RUNNING", "STOPPING")) {
+            LOGGER.info("stopJupyterKernel skipped, current status = " + kernelStatus.get());
             return;
         }
-        int n = 5;
-        while (n-- > 0) {
-            LOGGER.info(String.format("stopJupyterKernel, try times remains = [%s]", n));
-            try {
-                if (jupyterServerThread.isInterrupted()) {
-                    break;
-                } else {
-                    jupyterServerThread.interrupt();
-                }
-            } catch (Exception ignored) {
-            } finally {
-                jupyterServerThread = null;
-            }
+
+        LOGGER.info("Stopping Jupyter Kernel...");
+        
+        jupyterServerThread.interrupt();
+
+        try {
+            jupyterServerThread.join(5000);  // 最多等待 5 秒让线程退出
+        } catch (InterruptedException e) {
+            LOGGER.warn("Interrupted while stopping Jupyter kernel", e);
+            Thread.currentThread().interrupt();  // 恢复中断状态
         }
-        LOGGER.info("stopJupyterKernel finished");
+
+        jupyterServerThread = null;
+        kernelStatus.set("STOPPED");
+        LOGGER.info("Jupyter Kernel stopped.");
     }
 }

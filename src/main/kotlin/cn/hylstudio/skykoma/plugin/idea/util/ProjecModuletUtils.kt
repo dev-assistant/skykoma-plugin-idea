@@ -141,22 +141,6 @@ fun Project.closeProject() {
     }
 }
 
-val Project.repositoryManager: GitRepositoryManager get() = GitRepositoryManager.getInstance(this)
-val Project.currentHash: String
-    get() {
-//        val projectDir = this.basePath
-//        return projectDir.gitCurrentHash
-        return this.repositoryManager.repositories[0].currentRevision ?: ""
-    }
-
-
-val Project.currentBranch: String
-    get() {
-//        val projectDir = this.basePath
-//        return projectDir.gitCurrentBranch
-        return this.repositoryManager.repositories[0].currentBranch?.name ?: ""
-    }
-
 fun filterFileByExtension(sourceRoot: VirtualFile, extension: String): List<VirtualFile> =
     mutableListOf<VirtualFile>().also { result ->
         VfsUtil.iterateChildrenRecursively(
