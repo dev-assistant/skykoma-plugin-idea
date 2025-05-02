@@ -289,9 +289,8 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         });
 
         jupyterServerThread.setContextClassLoader(pluginClassLoader);
-        jupyterServerThread.setDaemon(true);  // 设置守护线程
+        jupyterServerThread.setDaemon(false);  // 设置守护线程
         jupyterServerThread.start();
-
         SkykomaNotifier.notifyInfo("Jupyter kernel is starting...");
     }
 
@@ -301,20 +300,33 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
             LOGGER.info("stopJupyterKernel skipped, current status = " + kernelStatus.get());
             return;
         }
-
         LOGGER.info("Stopping Jupyter Kernel...");
-        
         jupyterServerThread.interrupt();
-
         try {
-            jupyterServerThread.join(5000);  // 最多等待 5 秒让线程退出
+            jupyterServerThread.join(5000);  // 等待最多5秒
         } catch (InterruptedException e) {
             LOGGER.warn("Interrupted while stopping Jupyter kernel", e);
             Thread.currentThread().interrupt();  // 恢复中断状态
+            // 检查线程是否在中断前已停止
         }
-
-        jupyterServerThread = null;
-        kernelStatus.set("STOPPED");
-        LOGGER.info("Jupyter Kernel stopped.");
+        int maxTry = 5;
+        boolean threadStopped;
+        do {
+            threadStopped = !jupyterServerThread.isAlive();
+            if (threadStopped) {
+                kernelStatus.set("STOPPED");
+                jupyterServerThread = null;
+                LOGGER.info("Jupyter Kernel stopped.");
+                break;
+            } else {
+                jupyterServerThread.stop();
+//            kernelStatus.set("ERROR"); // 或保留为"STOPPING"以允许重试
+                LOGGER.error("Jupyter Kernel thread did not stop with retry left " + maxTry);
+                // 考虑其他清理逻辑，但保持jupyterServerThread引用以便后续处理
+            }
+        } while (maxTry-- > 0);
+        if (!threadStopped) {
+            LOGGER.error("Jupyter Kernel thread stop within max retry");
+        }
     }
 }
