@@ -15,11 +15,12 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.toNioPath
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.WindowManager
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
 import com.intellij.ui.AppIcon
 import com.intellij.util.xml.DomManager
-import git4idea.repo.GitRepositoryManager
 import org.jetbrains.jps.model.java.JavaResourceRootType
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import java.io.File
@@ -88,6 +89,8 @@ val Project.psiManager: PsiManager get() = PsiManager.getInstance(this)
 val Project.fileEditorManager: FileEditorManager get() = FileEditorManager.getInstance(this)
 val Project.moduleManager: ModuleManager get() = ModuleManager.getInstance(this)
 val Project.domManager: DomManager get() = DomManager.getDomManager(this)
+val Project.psiDocumentManager: PsiDocumentManager get() = PsiDocumentManager.getInstance(this)
+val Project.toolWindowManager: ToolWindowManager get() = ToolWindowManager.getInstance(this)
 val Project.rootManager: ProjectRootManager get() = ProjectRootManager.getInstance(this)
 val Project.modules: Array<Module> get() = this.moduleManager.modules
 fun String.trustParent(): Boolean {

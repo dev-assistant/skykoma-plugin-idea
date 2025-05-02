@@ -3,6 +3,7 @@ package cn.hylstudio.skykoma.plugin.idea.util
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.actions.RefreshAction
+import com.intellij.openapi.wm.ToolWindowId
 import com.intellij.vcs.log.impl.VcsProjectLog
 import com.intellij.vcs.log.util.VcsLogUtil
 import git4idea.GitLocalBranch
@@ -100,19 +101,27 @@ fun Project.fetchAllRemotesRepos() {
     result.showNotification()
 }
 
-fun Project.refreshGitLogsUi() {
+fun Project.refreshGitLogsUi(showUi: Boolean = true) {
     val project = this
     val myProjectLog = VcsProjectLog.getInstance(project)
     val logManager = myProjectLog.logManager!!
     val dataManager = logManager.dataManager
-    val logUis = logManager.logUis
+    val toolWindowManager = project.toolWindowManager
     WriteCommandAction.runWriteCommandAction(project) {
-        if (logUis.size > 0) {
-            dataManager.refresh(VcsLogUtil.getVisibleRoots(logUis[0]));
-        } else {
-            println("logUis empty")
+        if (showUi) {
+            toolWindowManager.getToolWindow(ToolWindowId.VCS)?.activate {
+                println("Git tool window activated.")
+            }
         }
-        RefreshAction.doRefresh(project)
-        println("refresh ui finished")
+        val logUis = logManager.logUis
+        WriteCommandAction.runWriteCommandAction(project) {
+            if (logUis.size > 0) {
+                dataManager.refresh(VcsLogUtil.getVisibleRoots(logUis[0]));
+            } else {
+                println("logUis empty")
+            }
+            RefreshAction.doRefresh(project)
+            println("refresh ui finished")
+        }
     }
 }
