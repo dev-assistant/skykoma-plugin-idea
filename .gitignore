@@ -6,3 +6,4 @@ bin
 out
 .vscode
 local.properties
+.intellijPlatform
