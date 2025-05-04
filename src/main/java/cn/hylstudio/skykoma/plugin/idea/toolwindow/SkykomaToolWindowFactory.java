@@ -5,9 +5,9 @@ import cn.hylstudio.skykoma.plugin.idea.util.ProjectUtils;
 import com.intellij.ide.actions.RevealFileAction;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
-import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.TextBrowseFolderListener;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
@@ -50,7 +50,7 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
 
     private JComponent createRootComponent(Project project) {
         JPanel container = new JPanel(new BorderLayout());
-        container.setBorder(BorderFactory.createEmptyBorder(0,0,0,0));
+        container.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
         // 创建滚动面板的包裹层
         JPanel contentPanel = new JPanel(new BorderLayout());
         contentPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
@@ -103,7 +103,7 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
             // 此处 editor 已确保非 null
             editor.getSettings().setUseSoftWraps(true);
         });
-        registerCmdPanel.add(txtRegisterKernelCmd,BorderLayout.CENTER);
+        registerCmdPanel.add(txtRegisterKernelCmd, BorderLayout.CENTER);
         jupyterPanel.add(registerCmdPanel);
 
         JPanel registerBtnPanel = new JBPanel<>(new WrapLayout(FlowLayout.LEFT));
@@ -139,8 +139,8 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         JPanel pathSelectorPanel = new JBPanel<>(new BorderLayout());
         TextFieldWithBrowseButton sdkSelector = new TextFieldWithBrowseButton();
-
-        sdkSelector.addBrowseFolderListener(project, FileChooserDescriptorFactory.singleDir().withTitle("Select JDK Path"));
+        FileChooserDescriptor singleDir = new FileChooserDescriptor(false, true, false, false, false, false);
+        sdkSelector.addBrowseFolderListener(new TextBrowseFolderListener(singleDir.withTitle("Select JDK Path"), project));
         sdkSelector.setText(ProjectUtils.getCurrentSdkHomePath(project));
         JBLabel jdkLabel = new JBLabel("JDK:");
         pathSelectorPanel.add(jdkLabel, BorderLayout.WEST); // 左侧固定标签
@@ -149,7 +149,8 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         JPanel mavenSelectorPanel = new JBPanel<>(new BorderLayout());
         TextFieldWithBrowseButton mavenSelector = new TextFieldWithBrowseButton();
-        mavenSelector.addBrowseFolderListener(project, FileChooserDescriptorFactory.singleDir().withTitle("Select Maven Path"));
+        FileChooserDescriptor singleDir2 = new FileChooserDescriptor(false, true, false, false, false, false);
+        mavenSelector.addBrowseFolderListener(new TextBrowseFolderListener(singleDir2.withTitle("Select Maven Path"), project));
         mavenSelector.setText(ProjectUtils.getCurrentMavenHomePath(project));
         JBLabel mavenLabel = new JBLabel("Maven:");
         mavenSelectorPanel.add(mavenLabel, BorderLayout.WEST); // 左侧固定标签

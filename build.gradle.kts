@@ -39,7 +39,7 @@ group = "cn.hylstudio.skykoma.plugin.idea"
 version = if (project.hasProperty("projVersion")) {
     project.findProperty("projVersion") as String
 } else {
-    "0.1.0"
+    "0.1.4"
 }
 
 kotlin {
@@ -53,6 +53,7 @@ java {
 }
 dependencies {
     intellijPlatform {
+//        intellijIdeaCommunity("2024.2.6")
         intellijIdeaCommunity("2025.1")
 //        plugins()
 //        bundledPlugins()
