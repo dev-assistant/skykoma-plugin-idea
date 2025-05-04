@@ -24,7 +24,7 @@
 conda create -n skykoma python=3.12 -y
 SKYKOMA_PYTHON_HOME=$CONDA_HOME/envs/skykoma
 SKYKOMA_PYTHON_BIN=$SKYKOMA_PYTHON_HOME/bin
-$SKYKOMA_PYTHON_BIN/python -m pip install jupyterlab kotlin-jupyter-kernel jupyterlab-lsp git+https://github.com/956237586/run_kotlin_kernel_idea.git@v0.1 git+https://github.com/956237586/jupyter_client.git@v8.4.3
+$SKYKOMA_PYTHON_BIN/python -m pip install jupyterlab kotlin-jupyter-kernel jupyterlab-lsp jupyter-collaboration jupyter-kernel-client==0.6.0 jupyter-nbmodel-client==0.11.3 git+https://github.com/956237586/run_kotlin_kernel_idea.git@v0.1 git+https://github.com/956237586/jupyter_client.git@v8.4.3
 # 清华镜像加速安装jupyterlab选项
 -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```

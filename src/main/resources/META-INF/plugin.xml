@@ -18,9 +18,10 @@
     <!-- Text to display as description on Preferences/Settings | Plugin page -->
     <description>
         <![CDATA[
-      Skykoma For IDEA
-      1. support register idea as custom jupyter kernel
-      2. support ast analysis
+      Skykoma For IDEA<br/>
+      1. support register idea as custom jupyter kernel<br/>
+      2. support ast analysis and auto upload<br/>
+      other refer https://github.com/dev-assistant/skykoma-plugin-idea
     ]]>
     </description>
     <change-notes>
