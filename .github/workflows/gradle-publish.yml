@@ -20,7 +20,7 @@ jobs:
     steps:
     - name: Get version
       id: get_version
-      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
     - name: Checkout barnch
       uses: actions/checkout@v4.1.1
     - name: Set up JDK 17
