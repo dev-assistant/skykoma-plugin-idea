@@ -32,7 +32,7 @@ group = "cn.hylstudio.skykoma.plugin.idea"
 version = if (project.hasProperty("projVersion")) {
     project.findProperty("projVersion") as String
 } else {
-    "v0.0.39"
+    "0.0.42"
 }
 
 kotlin {
@@ -111,8 +111,8 @@ tasks {
 
     patchPluginXml {
         version.set("${project.version}")
-        sinceBuild.set("212")
-        untilBuild.set("233.*")
+        sinceBuild.set("223")
+        untilBuild.set("241.*")
     }
 
     verifyPluginConfiguration {
