@@ -3,27 +3,32 @@ package cn.hylstudio.skykoma.plugin.idea
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import org.jetbrains.kotlinx.jupyter.*
-import org.slf4j.LoggerFactory
-
+import org.jetbrains.kotlinx.jupyter.api.CodeEvaluator
+import org.jetbrains.kotlinx.jupyter.api.EmbeddedKernelRunMode
+import org.jetbrains.kotlinx.jupyter.api.libraries.JupyterConnection
 import org.jetbrains.kotlinx.jupyter.api.libraries.JupyterSocketType
 import org.jetbrains.kotlinx.jupyter.api.libraries.rawMessageCallback
-import org.jetbrains.kotlinx.jupyter.libraries.EmptyResolutionInfoProvider
-import org.jetbrains.kotlinx.jupyter.libraries.ResolutionInfoProvider
-import org.jetbrains.kotlinx.jupyter.libraries.getDefaultClasspathResolutionInfoProvider
-import org.jetbrains.kotlinx.jupyter.messaging.CommManagerImpl
-import org.jetbrains.kotlinx.jupyter.messaging.JupyterConnectionInternal
-import org.jetbrains.kotlinx.jupyter.messaging.controlMessagesHandler
-import org.jetbrains.kotlinx.jupyter.messaging.shellMessagesHandler
-import org.jetbrains.kotlinx.jupyter.repl.creating.DefaultReplFactory
+import org.jetbrains.kotlinx.jupyter.closeIfPossible
+import org.jetbrains.kotlinx.jupyter.config.DefaultKernelLoggerFactory
+import org.jetbrains.kotlinx.jupyter.config.RuntimeKernelProperties
+import org.jetbrains.kotlinx.jupyter.config.createRuntimeProperties
+import org.jetbrains.kotlinx.jupyter.createMessageHandler
+import org.jetbrains.kotlinx.jupyter.createReplSettings
+import org.jetbrains.kotlinx.jupyter.libraries.DefaultResolutionInfoProviderFactory
+import org.jetbrains.kotlinx.jupyter.messaging.*
+import org.jetbrains.kotlinx.jupyter.repl.ReplConfig
+import org.jetbrains.kotlinx.jupyter.repl.ReplRuntimeProperties
+import org.jetbrains.kotlinx.jupyter.repl.ResolutionInfoProviderFactory
+import org.jetbrains.kotlinx.jupyter.repl.config.DefaultReplSettings
+import org.jetbrains.kotlinx.jupyter.startup.DEFAULT
 import org.jetbrains.kotlinx.jupyter.startup.KernelArgs
-import org.jetbrains.kotlinx.jupyter.startup.KernelConfig
+import org.jetbrains.kotlinx.jupyter.startup.ReplCompilerMode
 import org.jetbrains.kotlinx.jupyter.startup.getConfig
+import org.slf4j.LoggerFactory
 import java.io.File
-import java.util.concurrent.atomic.AtomicLong
 import kotlin.concurrent.thread
-import kotlin.script.experimental.jvm.util.classpathFromClassloader
 import kotlin.script.experimental.jvm.util.KotlinJars
+import kotlin.script.experimental.jvm.util.classpathFromClassloader
 import kotlin.script.experimental.jvm.util.scriptCompilationClasspathFromContextOrStdlib
 
 
@@ -68,12 +73,15 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
         try {
             log.info("Kernel args: " + args.joinToString { it })
             val kernelArgs = parseCommandLine(*args)
-            val libraryInfoProvider = getDefaultClasspathResolutionInfoProvider()
+//            val libraryInfoProvider = getDefaultClasspathResolutionInfoProvider()
             val kernelConfig = kernelArgs.getConfig()
-            val replConfig = ReplConfig.create(libraryInfoProvider, kernelArgs.homeDir)
+            val replConfig = ReplConfig.create(
+                resolutionInfoProviderFactory = DefaultResolutionInfoProviderFactory,
+                homeDir = kernelArgs.homeDir
+            )
             val runtimeProperties = createRuntimeProperties(kernelConfig, defaultProperties = defaultRuntimeProperties)
 //            kernelServer(kernelConfig, replConfig, runtimeProperties)
-            embedKernelIdea(kernelArgs, replConfig, runtimeProperties,null)
+            embedKernelIdea(kernelArgs, replConfig, runtimeProperties, null)
         } catch (e: Exception) {
             log.error("exception running kernel with args: \"${args.joinToString()}\"", e)
         }
@@ -120,17 +128,27 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
         val cfgFileValue = cfgFile ?: throw IllegalArgumentException("config file is not provided")
         if (!cfgFileValue.exists() || !cfgFileValue.isFile) throw IllegalArgumentException("invalid config file $cfgFileValue")
 
-        return KernelArgs(cfgFileValue, classpath ?: emptyList(), homeDir, debugPort, clientType, jvmTargetForSnippets)
+        return KernelArgs(
+            cfgFileValue,
+            classpath ?: emptyList(),
+            homeDir,
+            debugPort,
+            clientType,
+            jvmTargetForSnippets,
+            ReplCompilerMode.K1
+//            ReplCompilerMode.K2
+        )
     }
 
-    fun printClassPath() {
-        val cl = ClassLoader.getSystemClassLoader()
+    fun getSystemClassPath(): List<File>? {
+        val systemClassLoader = ClassLoader.getSystemClassLoader()
 
-        val cp = classpathFromClassloader(cl)
+        val cp = classpathFromClassloader(systemClassLoader)
 
         if (cp != null) {
-            log.info("Current classpath: " + cp.joinToString())
+            log.info("systemClassLoader classpath: " + cp.joinToString())
         }
+        return cp
     }
 
     /**
@@ -143,52 +161,57 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
      */
     @Suppress("unused")
     fun embedKernelIdea(
-        kernelConfigTmp:KernelArgs,
-        replConfigTmp:ReplConfig,
-        replRuntimePropertiesTmp:ReplRuntimeProperties,
-        resolutionInfoProvider: ResolutionInfoProvider?,
+        kernelConfigTmp: KernelArgs,
+        replConfigTmp: ReplConfig,
+        replRuntimePropertiesTmp: ReplRuntimeProperties,
+        resolutionInfoProviderFactory: ResolutionInfoProviderFactory?,
         scriptReceivers: List<Any>? = null
     ) {
         val processCp = System.getProperty("java.class.path").split(File.pathSeparator).toTypedArray().map { File(it) }
-        val ideaCp1 = scriptCompilationClasspathFromContextOrStdlib(wholeClasspath = true, classLoader = pluginClassLoader)
+        val systemClassPath = getSystemClassPath() ?: emptyList()
+        val ideaCp1 =
+            scriptCompilationClasspathFromContextOrStdlib(wholeClasspath = true, classLoader = pluginClassLoader)
+        log.info("ideaCp1: " + ideaCp1.joinToString())
         val ideaCp2 = KotlinJars.kotlinScriptStandardJars
-        val cp = ideaCp1 + ideaCp2
+        log.info("ideaCp2: " + ideaCp2.joinToString())
+        val cp = systemClassPath + ideaCp1 + ideaCp2
+        val scriptClassPath = cp.distinct()
 //        val kernelConfig = KernelArgs(kernelConfigTmp.cfgFile, cp, null, kernelConfigTmp.debugPort, kernelConfigTmp.clientType, kernelConfigTmp.jvmTargetForSnippets).getConfig()
-        val kernelConfig = KernelArgs(kernelConfigTmp.cfgFile, cp, null, null, null, null).getConfig()
+        val kernelConfig = KernelArgs(
+            cfgFile = kernelConfigTmp.cfgFile,
+            scriptClasspath=scriptClassPath,
+            homeDir = null,
+            debugPort = null,
+            clientType = null,
+            jvmTargetForSnippets = null,
+            replCompilerMode = ReplCompilerMode.DEFAULT,
+        ).getConfig()
 
-        val replConfig = ReplConfig.create(
-            resolutionInfoProvider ?: EmptyResolutionInfoProvider,
-            null,
-            true,
-        )
-        kernelServer(kernelConfig, replConfig, scriptReceivers = scriptReceivers ?: emptyList())
+        val replSettings =
+            createReplSettings(
+                DefaultKernelLoggerFactory,
+                EmbeddedKernelRunMode,
+                kernelConfig,
+                resolutionInfoProviderFactory,
+                scriptReceivers,
+            )
+        startZmqServer(replSettings)
     }
 
-    fun kernelServer(
-        kernelConfig: KernelConfig,
-        replConfig: ReplConfig,
-        runtimeProperties: ReplRuntimeProperties = defaultRuntimeProperties,
-        scriptReceivers: List<Any> = emptyList()
-    ) {
-        log.info("Starting server with config: $kernelConfig")
+    fun startZmqServer(replSettings: DefaultReplSettings) {
+        val kernelConfig = replSettings.kernelConfig
+        val loggerFactory = replSettings.loggerFactory
+        val logger = loggerFactory.getLogger(org.jetbrains.kotlinx.jupyter.iKotlinClass)
+        logger.info("Starting server with config: $kernelConfig")
 
-        JupyterConnectionImpl(kernelConfig).use { conn: JupyterConnectionInternal ->
+        JupyterConnectionImpl(loggerFactory, kernelConfig).use { conn: JupyterConnectionInternal ->
+//            org.jetbrains.kotlinx.jupyter.printClassPath(logger)
 
-            printClassPath()
+            logger.info("Begin listening for events")
 
-            log.info("Begin listening for events")
-
-            val executionCount = AtomicLong(1)
-
-            val commManager = CommManagerImpl(conn)
-            val repl = DefaultReplFactory(
-                kernelConfig,
-                replConfig,
-                runtimeProperties,
-                scriptReceivers,
-                conn,
-                commManager
-            ).createRepl()
+            val socketManager = conn.socketManager
+            val messageHandler = createMessageHandler(replSettings, socketManager)
+            initializeKernelSession(messageHandler, replSettings)
 
             val mainThread = Thread.currentThread()
 
@@ -200,51 +223,138 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
                 while (true) {
                     try {
                         loopBody()
-                    } catch (e: InterruptedException) {
-                        log.debug(interruptedMessage)
+                    } catch (_: InterruptedException) {
+                        logger.debug(interruptedMessage)
                         threadsToInterrupt.forEach { it.interrupt() }
                         break
                     }
                 }
             }
 
-            conn.addMessageCallback(
-                rawMessageCallback(JupyterSocketType.CONTROL, null) { rawMessage ->
-                    conn.controlMessagesHandler(rawMessage, repl)
-                },
-            )
-
-            conn.addMessageCallback(
-                rawMessageCallback(JupyterSocketType.SHELL, null) { rawMessage ->
-                    conn.updateSessionInfo(rawMessage)
-                    conn.shellMessagesHandler(rawMessage, repl, commManager, executionCount)
-                },
-            )
-
-            val controlThread = thread {
-                socketLoop("Control: Interrupted", mainThread) {
-                    conn.control.runCallbacksOnMessage()
-                }
+            fun JupyterConnection.addMessageCallbackForSocket(socketType: JupyterSocketType) {
+                addMessageCallback(
+                    rawMessageCallback(socketType, null) { rawMessage ->
+                        messageHandler.handleMessage(socketType, rawMessage)
+                    },
+                )
             }
 
-            val hbThread = thread {
-                socketLoop("Heartbeat: Interrupted", mainThread) {
-                    conn.heartbeat.onData { socket.send(it, 0) }
+            conn.addMessageCallbackForSocket(JupyterSocketType.CONTROL)
+            conn.addMessageCallbackForSocket(JupyterSocketType.SHELL)
+
+            val controlThread =
+                thread {
+                    socketLoop("Control: Interrupted", mainThread) {
+                        socketManager.control.runCallbacksOnMessage()
+                    }
                 }
-            }
+
+            val hbThread =
+                thread {
+                    socketLoop("Heartbeat: Interrupted", mainThread) {
+                        socketManager.heartbeat.onData { send(it) }
+                    }
+                }
 
             socketLoop("Main: Interrupted", controlThread, hbThread) {
-                conn.shell.runCallbacksOnMessage()
+                socketManager.shell.runCallbacksOnMessage()
             }
 
             try {
                 controlThread.join()
                 hbThread.join()
             } catch (_: InterruptedException) {
+            } finally {
+                messageHandler.closeIfPossible()
             }
 
-            log.info("Shutdown server")
+            logger.info("Server is stopped")
         }
     }
-
 }
+
+private fun initializeKernelSession(
+    messageHandler: MessageHandlerImpl,
+    replSettings: DefaultReplSettings,
+) {
+    val codeEvaluator =
+        CodeEvaluator { code ->
+            val executeRequest =
+                ExecuteRequest(
+                    code,
+                    storeHistory = false,
+                )
+            val messageData =
+                MessageData(
+                    header = makeHeader(MessageType.EXECUTE_REQUEST),
+                    content = executeRequest,
+                )
+            val message =
+                Message(
+                    data = messageData,
+                )
+            messageHandler.handleMessage(
+                JupyterSocketType.SHELL,
+                message.toRawMessage(),
+            )
+        }
+
+    replSettings.replConfig.kernelRunMode.initializeSession(
+        messageHandler.repl.notebook,
+        codeEvaluator,
+    )
+}
+//        val replConfig = ReplConfig.create(
+//            resolutionInfoProviderFactory = resolutionInfoProviderFactory ?: DefaultResolutionInfoProviderFactory,
+//            loggerFactory = DefaultKernelLoggerFactory,
+//            homeDir = kernelConfig.homeDir,
+//            kernelRunMode = EmbeddedKernelRunMode,
+//            scriptReceivers = scriptReceivers
+//        )
+//
+//    fun kernelServer(
+//        kernelConfig: KernelConfig,
+//        replConfig: ReplConfig,
+//        runtimeProperties: ReplRuntimeProperties = defaultRuntimeProperties,
+//        scriptReceivers: List<Any> = emptyList()
+//    ): ReplForJupyter {
+//        printClassPath()
+//        val openSocketAction: (JupyterSocketInfo, ZMQ.Context) -> JupyterSocket = { jupyterSocketInfo, zmqContext ->
+//            SocketWrapper(
+//                loggerFactory = DefaultKernelLoggerFactory,
+//                name = jupyterSocketInfo.name,
+//                socket = zmqContext.socket(jupyterSocketInfo.zmqType(JupyterSocketSide.SERVER)),
+//                address = kernelConfig.addressForSocket(jupyterSocketInfo),
+//                hmac = kernelConfig.hmac
+//            )
+//        }
+//        val socketManager = JupyterSocketManagerImpl(
+//            15.seconds, openSocketAction
+//        )
+//        val communicationFacility: JupyterCommunicationFacility = JupyterCommunicationFacilityImpl(
+//            socketManager, MessageFactoryProviderImpl()
+//        )
+//        val componentsProvider =
+//            object : ReplComponentsProviderBase() {
+//                override fun provideResolutionInfoProvider() = replConfig.resolutionInfoProvider
+//                override fun provideScriptClasspath() = kernelConfig.scriptClasspath
+//                override fun provideHomeDir() = kernelConfig.homeDir
+//                override fun provideMavenRepositories() = replConfig.mavenRepositories
+//                override fun provideLibraryResolver() = replConfig.libraryResolver
+//                override fun provideRuntimeProperties() = runtimeProperties
+//                override fun provideScriptReceivers() = scriptReceivers
+//                override fun provideKernelRunMode() = replConfig.kernelRunMode
+//                override fun provideDisplayHandler() = NoOpDisplayHandler
+//                override fun provideCommunicationFacility(): JupyterCommunicationFacility = communicationFacility
+//                override fun provideDebugPort(): Int? = kernelConfig.debugPort
+//                override fun provideHttpClient() = replConfig.httpUtil.httpClient
+//                override fun provideLibraryDescriptorsManager() = replConfig.httpUtil.libraryDescriptorsManager
+//                override fun provideLibraryInfoCache() = replConfig.httpUtil.libraryInfoCache
+//                override fun provideLibraryReferenceParser() = replConfig.httpUtil.libraryReferenceParser
+//                override fun provideInMemoryReplResultsHolder() = NoOpInMemoryReplResultsHolder
+//                override fun provideReplCompilerMode(): ReplCompilerMode = kernelConfig.replCompilerMode
+//            }
+//        val replForJupyter: ReplForJupyter = componentsProvider.createRepl()
+////        replForJupyter.closeIfPossible()
+//        return replForJupyter
+//    }

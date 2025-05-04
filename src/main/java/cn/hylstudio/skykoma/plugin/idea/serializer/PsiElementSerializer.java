@@ -8,7 +8,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import org.apache.commons.lang3.reflect.MethodUtils;
-import org.jetbrains.deft.Obj;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;

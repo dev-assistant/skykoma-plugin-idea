@@ -1,4 +1,4 @@
-import org.jetbrains.intellij.tasks.PrepareSandboxTask
+//import org.jetbrains.intellij.tasks.PrepareSandboxTask
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
@@ -20,59 +20,63 @@ import org.jetbrains.kotlin.konan.properties.loadProperties
 //        }
 //    }
 //}
-
+repositories {
+    mavenLocal()
+    intellijPlatform {
+        defaultRepositories()
+    }
+}
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "1.8.21"
-    id("org.jetbrains.kotlin.jupyter.api") version "0.11.0-385"
-    id("org.jetbrains.intellij") version "1.13.0"
+    id("org.jetbrains.kotlin.jvm") version "2.1.20"
+    id("org.jetbrains.kotlin.jupyter.api") version "0.12.0-424"
+//    id("org.jetbrains.intellij") version "1.13.0"
+    id("org.jetbrains.intellij.platform") version "2.5.0"
+//    id("org.jetbrains.intellij.platform.migration") version "2.5.0"
 }
 
 group = "cn.hylstudio.skykoma.plugin.idea"
 version = if (project.hasProperty("projVersion")) {
     project.findProperty("projVersion") as String
 } else {
-    "0.0.46"
+    "0.1.0"
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
-
-// See https://github.com/JetBrains/gradle-intellij-plugin/
-intellij {
-//    version.set("2021.2.3")
-//    version.set("2022.1.4")
-//    version.set("2022.3.2")
-    version.set("2023.1.5")
-//    version.set("2023.3.8")
-    plugins.set(listOf(
-        "Git4Idea",
-        "com.intellij.java",
-        "org.jetbrains.idea.maven"
-    ))
-}
-
 dependencies {
-    annotationProcessor("org.projectlombok:lombok:1.18.22")
+    intellijPlatform {
+        intellijIdeaCommunity("2025.1")
+//        plugins()
+//        bundledPlugins()
+        bundledPlugins(
+            listOf(
+                "Git4Idea",
+                "com.intellij.java",
+                "org.jetbrains.idea.maven"
+            )
+        )
+    }
 
+    annotationProcessor("org.projectlombok:lombok:1.18.38")
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
 //    implementation("com.google.code.gson:gson:2.10.1")
 //    implementation("com.google.guava:guava:31.1-jre")
-    implementation("org.jetbrains.kotlinx:kotlin-jupyter-api:0.11.0-385")
-    implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:0.11.0-385")
+    implementation("org.jetbrains.kotlinx:kotlin-jupyter-api:0.12.0-424")
+    implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:0.12.0-424")
 
-    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:1.8.20")
+    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:1.9.23")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl-embeddable:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-script-runtime:1.8.20")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:1.8.20")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:1.9.23")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-common:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-compiler-fe10-for-ide:1.8.20")
@@ -91,9 +95,9 @@ dependencies {
 }
 
 tasks {
-    initializeIntelliJPlugin {
-        selfUpdateCheck.set(false)
-    }
+//    initializeIntelliJPlugin {
+//        selfUpdateCheck.set(false)
+//    }
     withType {
         compileJava {
             options.encoding = "UTF-8"
@@ -111,14 +115,14 @@ tasks {
     }
 
     patchPluginXml {
-        version.set("${project.version}")
-        sinceBuild.set("231")
-        untilBuild.set("241.*")
+        pluginVersion.set("${project.version}")
+        sinceBuild.set("242")
+//        untilBuild.set("251.*")
     }
 
-    verifyPluginConfiguration {
-        kotlinStdlibDefaultDependency.set(false)
-    }
+//    verifyPluginConfiguration {
+//        kotlinStdlibDefaultDependency.set(false)
+//    }
 
 //    prepareSandbox {
 //        doLast {
@@ -136,30 +140,30 @@ tasks {
 //            }
 //        }
 //    }
-    publishPlugin {
-        var publishToken = ""
-        if (project.hasProperty("publishToken")) {
-            publishToken = project.findProperty("publishToken") as String
-        } else {
-            val localConfig = file("local.properties")
-            if (localConfig.exists()) {
-                val config = loadProperties(localConfig.path)
-                publishToken = config.getProperty("publishToken", "")
-            } else {
-                println("error: can't find public token")
-            }
-        }
-        token.set(publishToken)
-        host.set("https://github.com/dev-assistant/skykoma-plugin-idea")
-    }
+//    publishPlugin {
+//        var publishToken = ""
+//        if (project.hasProperty("publishToken")) {
+//            publishToken = project.findProperty("publishToken") as String
+//        } else {
+//            val localConfig = file("local.properties")
+//            if (localConfig.exists()) {
+//                val config = loadProperties(localConfig.path)
+//                publishToken = config.getProperty("publishToken", "")
+//            } else {
+//                println("error: can't find public token")
+//            }
+//        }
+//        token.set(publishToken)
+//        host.set("https://github.com/dev-assistant/skykoma-plugin-idea")
+//    }
 }
 
-fun PrepareSandboxTask.dependencySrcKotlincPath(): String {
-    val pluginDependencies = pluginDependencies.get()
-    val dependencyPluginSrc = pluginDependencies.distinctBy { it.id }.map { it.artifact.parentFile }.firstOrNull()
-            ?: error("dependencyPluginSrc empty")
-//            .gradle\caches\modules-2\files-2.1\com.jetbrains.intellij.idea\ideaIC\2023.1.1\770a0552545fe6ab0de3e2f8ac9adb7ea3046417\ideaIC-2023.1.1\plugins
-    return listOf(dependencyPluginSrc.path, "Kotlin", "kotlinc").joinToString(File.separator)
-//    println(dependencyKotlincDir)
-//    return dependencyKotlincDir
-}
+//fun PrepareSandboxTask.dependencySrcKotlincPath(): String {
+//    val pluginDependencies = pluginDependencies.get()
+//    val dependencyPluginSrc = pluginDependencies.distinctBy { it.id }.map { it.artifact.parentFile }.firstOrNull()
+//            ?: error("dependencyPluginSrc empty")
+////            .gradle\caches\modules-2\files-2.1\com.jetbrains.intellij.idea\ideaIC\2023.1.1\770a0552545fe6ab0de3e2f8ac9adb7ea3046417\ideaIC-2023.1.1\plugins
+//    return listOf(dependencyPluginSrc.path, "Kotlin", "kotlinc").joinToString(File.separator)
+////    println(dependencyKotlincDir)
+////    return dependencyKotlincDir
+//}
