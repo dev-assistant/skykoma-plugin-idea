@@ -4,6 +4,7 @@ import cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer;
 import cn.hylstudio.skykoma.plugin.idea.util.ProjectUtils;
 import com.intellij.ide.actions.RevealFileAction;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -138,8 +139,8 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         JPanel pathSelectorPanel = new JBPanel<>(new BorderLayout());
         TextFieldWithBrowseButton sdkSelector = new TextFieldWithBrowseButton();
-        sdkSelector.addBrowseFolderListener("Select JDK Path", null, null,
-                FileChooserDescriptorFactory.createSingleFolderDescriptor());
+
+        sdkSelector.addBrowseFolderListener(project, FileChooserDescriptorFactory.singleDir().withTitle("Select JDK Path"));
         sdkSelector.setText(ProjectUtils.getCurrentSdkHomePath(project));
         JBLabel jdkLabel = new JBLabel("JDK:");
         pathSelectorPanel.add(jdkLabel, BorderLayout.WEST); // 左侧固定标签
@@ -148,8 +149,7 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         JPanel mavenSelectorPanel = new JBPanel<>(new BorderLayout());
         TextFieldWithBrowseButton mavenSelector = new TextFieldWithBrowseButton();
-        mavenSelector.addBrowseFolderListener("Select Maven Path", null, null,
-                FileChooserDescriptorFactory.createSingleFolderDescriptor());
+        mavenSelector.addBrowseFolderListener(project, FileChooserDescriptorFactory.singleDir().withTitle("Select Maven Path"));
         mavenSelector.setText(ProjectUtils.getCurrentMavenHomePath(project));
         JBLabel mavenLabel = new JBLabel("Maven:");
         mavenSelectorPanel.add(mavenLabel, BorderLayout.WEST); // 左侧固定标签
