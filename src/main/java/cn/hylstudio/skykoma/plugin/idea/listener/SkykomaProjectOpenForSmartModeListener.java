@@ -21,10 +21,10 @@ public class SkykomaProjectOpenForSmartModeListener implements StartupActivity.R
         info(LOGGER, String.format("project smart mode ready, project = [%s]", name));
         IProjectInfoService projectService = project.getService(IProjectInfoService.class);
         projectService.setCurrentProject(project);//in DefaultDispatcher-Worker
-        ProgressManager.getInstance().run(new Task.Backgroundable(project, "UploadProjectInfo Task") {
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Upload projectInfo Task") {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                indicator.setText("waiting smart mode");
+                indicator.setText("Waiting smart mode");
                 DumbService.getInstance(project).waitForSmartMode();
                 //in polled thread
                 IProjectInfoService projectService = project.getService(IProjectInfoService.class);

@@ -3,6 +3,7 @@
 package cn.hylstudio.skykoma.plugin.idea.action;
 
 import cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
@@ -21,17 +22,22 @@ public class UpdateProjectInfoAction extends AnAction {
     public void actionPerformed(AnActionEvent anActionEvent) {
         Project project = anActionEvent.getProject();
         assert project != null;
-        ProgressManager.getInstance().run(new Task.Backgroundable(project, "UploadProjectInfo Task") {
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Upload projectInfo Task") {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                indicator.setText("waiting smart mode");
+                indicator.setText("Waiting smart mode");
                 DumbService.getInstance(project).waitForSmartMode();
-                //back to current thread
+                //in polled thread
                 IProjectInfoService projectService = project.getService(IProjectInfoService.class);
                 projectService.setCurrentProject(project);
                 projectService.updateProjectInfo(true, indicator::setText, indicator::setFraction);
             }
         });
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 
     @Override

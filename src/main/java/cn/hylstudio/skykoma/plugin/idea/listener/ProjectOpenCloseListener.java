@@ -13,29 +13,6 @@ public class ProjectOpenCloseListener implements ProjectManagerListener {
     private static final Logger LOGGER = Logger.getInstance(ProjectOpenCloseListener.class);
 
     /**
-     * Invoked on project open.
-     *
-     * @param project opening project
-     */
-    @Override
-    public void projectOpened(@NotNull Project project) {
-        // Ensure this isn't part of testing
-        Application application = ApplicationManager.getApplication();
-        if (application == null) {
-            LOGGER.info("listener projectOpened, application is null");
-            return;
-        }
-        if (application.isUnitTestMode()) {
-            return;
-        }
-        LOGGER.info(String.format("listener projectOpened, name = %s", project.getName()));
-        IdeaPluginAgentServer ideaPluginAgentServer =
-                ApplicationManager.getApplication().getService(IdeaPluginAgentServer.class);
-        DumbService dumbService = DumbService.getInstance(project);
-        dumbService.runWhenSmart(ideaPluginAgentServer::start);
-    }
-
-    /**
      * Invoked on project close.
      *
      * @param project closing project

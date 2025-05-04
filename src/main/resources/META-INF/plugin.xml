@@ -68,8 +68,7 @@
         <liveTemplateMacro implementation="cn.hylstudio.skykoma.plugin.idea.livetmpl.GenCreateTableSqlDDLMacro"/>
         <psi.treeChangeListener
                 implementation="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaPsiTreeChangeListener"/>
-        <backgroundPostStartupActivity
-                implementation="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaProjectOpenForBackgroundTaskListener"/>
+        <postStartupActivity implementation="cn.hylstudio.skykoma.plugin.idea.listener.ProjectOpenedListener"/>
         <requiredForSmartModeStartupActivity
                 implementation="cn.hylstudio.skykoma.plugin.idea.listener.SkykomaProjectOpenForSmartModeListener"/>
         <projectService serviceInterface="cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService"
