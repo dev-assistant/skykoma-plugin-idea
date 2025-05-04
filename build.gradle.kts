@@ -39,7 +39,7 @@ group = "cn.hylstudio.skykoma.plugin.idea"
 version = if (project.hasProperty("projVersion")) {
     project.findProperty("projVersion") as String
 } else {
-    "0.1.4"
+    "0.1.6"
 }
 
 kotlin {

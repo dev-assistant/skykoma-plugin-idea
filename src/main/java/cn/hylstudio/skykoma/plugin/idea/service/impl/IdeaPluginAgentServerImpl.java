@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.error;
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.info;
@@ -62,10 +63,10 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
     @Override
     public void registerAsJupyterKernel() {
         String pythonExecutable = getPythonExecutable();
-        String cmd = genRegisterKernelCmd(pythonExecutable);
-        info(LOGGER, String.format("registerAsJupyterKernel, cmd = [%s]", cmd));
+        List<String> cmds = genRegisterKernelCmd(pythonExecutable);
+        info(LOGGER, String.format("registerAsJupyterKernel, cmdArr = [%s]", arrToString(cmds)));
         try {
-            boolean registerSucc = registerCustomKernel(cmd);
+            boolean registerSucc = registerCustomKernel(cmds);
             if (registerSucc) {
                 String kernelJsonPath = getKernelJsonPath();
                 updateKernelJson(kernelJsonPath, pythonExecutable);
@@ -77,22 +78,24 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         }
     }
 
-    private static boolean registerCustomKernel(String cmd) throws IOException, InterruptedException {
+    private static boolean registerCustomKernel(List<String> cmds) throws IOException, InterruptedException {
         boolean succ = false;
-        Process process = Runtime.getRuntime().exec(cmd);
+        String[] cmdArr = cmds.toArray(new String[]{});
+        Process process = Runtime.getRuntime().exec(cmdArr);
         boolean exited = process.waitFor(5, TimeUnit.SECONDS);
+        String cmdStr = arrToString(cmds);
         if (exited) {
             int exitValue = process.exitValue();
             if (exitValue == 0) {
                 succ = true;
                 SkykomaNotifier.notifyInfo("registerAsJupyterKernel succ");
             } else {
-                String msg = String.format("registerAsJupyterKernel failed, exitValue = [%s], cmd = [%s]", exitValue, cmd);
+                String msg = String.format("registerAsJupyterKernel failed, exitValue = [%s], cmd = [%s]", exitValue, cmdStr);
                 info(LOGGER, msg);
                 SkykomaNotifier.notifyInfo(msg);
             }
         } else {
-            info(LOGGER, String.format("registerAsJupyterKernel timeout, cmd = [%s]", cmd));
+            info(LOGGER, String.format("registerAsJupyterKernel timeout, cmd = [%s]", cmdStr));
         }
         return succ;
     }
@@ -143,10 +146,14 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
 
     @Override
     public String genRegisterKernelCmd() {
-        return genRegisterKernelCmd(getPythonExecutable());
+        return arrToString(genRegisterKernelCmd(getPythonExecutable()));
     }
 
-    private String genRegisterKernelCmd(String pythonExecutable) {
+    private static String arrToString(Iterable<? extends CharSequence> cmdArr) {
+        return String.join(" ", cmdArr);
+    }
+
+    private List<String> genRegisterKernelCmd(String pythonExecutable) {
         reloadConfig();
         String listenAddress = configAddress;
         int port = configPort;
@@ -176,8 +183,7 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         // argv.add(String.format("--env KOTLIN_JUPYTER_JAVA_EXECUTABLE %s",
         // javaExecutable));
         // }
-        String cmd = String.join(" ", argv);
-        return cmd;
+        return argv;
     }
 
     private static String getUserJupyterPath(String folderName) {

@@ -2,9 +2,11 @@ package cn.hylstudio.skykoma.plugin.idea.config;
 
 import cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
+import com.intellij.openapi.ui.TextBrowseFolderListener;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.components.JBPanel;
@@ -102,8 +104,8 @@ public class IdeaPluginSettingsDialog implements Configurable {
         appendField(jupyterPanel, "Kernel Name:", jupyterKernelName);
 
         jupyterPythonExecutable = new TextFieldWithBrowseButton();
-        jupyterPythonExecutable.addBrowseFolderListener("Select Python Executable", null, null,
-                FileChooserDescriptorFactory.createSingleLocalFileDescriptor());
+        FileChooserDescriptor singleDir = new FileChooserDescriptor(false, true, false, false, false, false);
+        jupyterPythonExecutable.addBrowseFolderListener(new TextBrowseFolderListener(singleDir.withTitle("Select Python Executable"), null));
         jupyterPythonExecutable.setText(propertiesComponent.getValue(JUPYTER_PYTHON_EXECUTABLE, JUPYTER_PYTHON_EXECUTABLE_DEFAULT));
         appendField(jupyterPanel, "Python Executable:", jupyterPythonExecutable);
 
