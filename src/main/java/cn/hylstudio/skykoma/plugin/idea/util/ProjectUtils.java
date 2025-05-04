@@ -6,6 +6,9 @@ import com.intellij.openapi.projectRoots.*;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.roots.impl.LanguageLevelProjectExtensionImpl;
 import com.intellij.pom.java.LanguageLevel;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.idea.maven.project.MavenHomeType;
+import org.jetbrains.idea.maven.project.MavenInSpecificPath;
 import org.jetbrains.idea.maven.project.MavenProjectsManager;
 
 import java.util.Arrays;
@@ -21,7 +24,8 @@ public class ProjectUtils {
         if (currentMavenHomePath.equals(homePath)) {
             return;
         }
-        MavenProjectsManager.getInstance(project).getGeneralSettings().setMavenHome(homePath);
+        MavenHomeType mavenHomeType = new MavenInSpecificPath(homePath);
+        MavenProjectsManager.getInstance(project).getGeneralSettings().setMavenHomeType(mavenHomeType);
         System.out.println(String.format("skykoma projectMaven update succ, homePath = %s", homePath));
     }
 
@@ -126,7 +130,12 @@ public class ProjectUtils {
     }
 
     public static String getCurrentMavenHomePath(Project project) {
-        return MavenProjectsManager.getInstance(project).getGeneralSettings().getMavenHome();
+        MavenHomeType mavenHomeType = MavenProjectsManager.getInstance(project).getGeneralSettings().getMavenHomeType();
+        if (mavenHomeType instanceof MavenInSpecificPath) {
+            return ((MavenInSpecificPath) mavenHomeType).getMavenHome();
+        }
+        String title = mavenHomeType.getTitle();
+        return title;
     }
     public static String getCurrentSdkHomePath(Project project) {
         ProjectRootManager projectRootManager = ProjectRootManager.getInstance(project);
