@@ -22,6 +22,7 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
 import java.io.InputStreamReader
+import java.util.*
 
 fun getDirName(dir: String?): String {
     return if (dir != null) File(dir).name else ""
@@ -30,11 +31,18 @@ fun getDirName(dir: String?): String {
 fun execCmd(cmd: String, cwd: String? = null): Pair<String, String> {
     try {
         val cwdFile: File? = if (cwd != null) File(cwd) else null
-        val process: Process = Runtime.getRuntime().exec(cmd, null, cwdFile)
-        val stdout: BufferedReader = BufferedReader(InputStreamReader(process.inputStream))
-        val stderr: BufferedReader = BufferedReader(InputStreamReader(process.errorStream))
-        val stdOutput: String = stdout.readText() ?: ""
-        val stdErrOutput: String = stderr.readText() ?: ""
+        val st = StringTokenizer(cmd)
+        val cmdArray = arrayOfNulls<String>(st.countTokens())
+        var i = 0
+        while (st.hasMoreTokens()) {
+            cmdArray[i] = st.nextToken()
+            i++
+        }
+        val process: Process = Runtime.getRuntime().exec(cmdArray, null, cwdFile)
+        val stdout = BufferedReader(InputStreamReader(process.inputStream))
+        val stderr = BufferedReader(InputStreamReader(process.errorStream))
+        val stdOutput: String = stdout.readText()
+        val stdErrOutput: String = stderr.readText()
         // println("exec, cmd = $cmd, stdout = $stdOutput, stderr = $stdErrOutput")
         return Pair(stdOutput, stdErrOutput)
     } catch (e: IOException) {
