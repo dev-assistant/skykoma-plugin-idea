@@ -3,6 +3,7 @@ package cn.hylstudio.skykoma.plugin.idea.util
 import com.intellij.ide.DataManager
 import com.intellij.ide.GeneralSettings
 import com.intellij.ide.impl.TrustedPathsSettings
+import com.intellij.ide.impl.isPathTrustedInSettings
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -12,7 +13,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.util.io.toNioPath
+import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindowManager
@@ -23,7 +24,7 @@ import com.intellij.ui.AppIcon
 import com.intellij.util.xml.DomManager
 import org.jetbrains.jps.model.java.JavaResourceRootType
 import org.jetbrains.jps.model.java.JavaSourceRootType
-import java.io.File
+import java.nio.file.Paths
 import javax.swing.JFrame
 
 val Module.rootManager: ModuleRootManager get() = ModuleRootManager.getInstance(this)
@@ -94,11 +95,15 @@ val Project.toolWindowManager: ToolWindowManager get() = ToolWindowManager.getIn
 val Project.rootManager: ProjectRootManager get() = ProjectRootManager.getInstance(this)
 val Project.modules: Array<Module> get() = this.moduleManager.modules
 fun String.trustParent(): Boolean {
-    val parentPath = File(this).parent.toNioPath()
+    val parentPath = Paths.get(FileUtilRt.toSystemDependentName(this))
     var trustedPathsSettings = TrustedPathsSettings.getInstance()
-    if (trustedPathsSettings.isPathTrusted(parentPath)) {
+
+    if (isPathTrustedInSettings(parentPath)) {
         return false
     }
+//    if (trustedPathsSettings.isPathTrustedInSettings(parentPath)) {
+//        return false
+//    }
     trustedPathsSettings.addTrustedPath(parentPath.toString())
     println("trusted path added: $parentPath")
     return true

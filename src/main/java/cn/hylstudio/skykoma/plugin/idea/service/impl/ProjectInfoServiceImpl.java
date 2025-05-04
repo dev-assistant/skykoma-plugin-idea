@@ -26,6 +26,7 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.util.RunnableCallable;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -37,6 +38,7 @@ import java.io.File;
 import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -303,7 +305,7 @@ public class ProjectInfoServiceImpl implements IProjectInfoService {
             }
             fileDto.setPsiFile(psiFile);
 //            ReadAction.run(() -> scanOneFile(fileDto));
-            ReadAction.nonBlocking(() -> scanOneFile(fileDto))
+            ReadAction.nonBlocking(new RunnableCallable(() -> scanOneFile(fileDto)))
                     .inSmartMode(project)
                     .expireWhen(() -> project.isDisposed())
                     .submit(AppExecutorUtil.getAppExecutorService());

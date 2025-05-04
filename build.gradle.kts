@@ -32,7 +32,7 @@ group = "cn.hylstudio.skykoma.plugin.idea"
 version = if (project.hasProperty("projVersion")) {
     project.findProperty("projVersion") as String
 } else {
-    "0.0.42"
+    "0.0.45"
 }
 
 kotlin {
@@ -51,6 +51,7 @@ intellij {
 //    version.set("2022.1.4")
 //    version.set("2022.3.2")
     version.set("2023.1.5")
+//    version.set("2023.3.8")
     plugins.set(listOf(
         "Git4Idea",
         "com.intellij.java",
@@ -111,7 +112,7 @@ tasks {
 
     patchPluginXml {
         version.set("${project.version}")
-        sinceBuild.set("223")
+        sinceBuild.set("231")
         untilBuild.set("241.*")
     }
 

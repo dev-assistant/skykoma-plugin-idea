@@ -26,9 +26,8 @@
     <change-notes>
         <![CDATA[
       <ul>
-        <li><b>0.0.10</b>1.add Notification
-2.change txtRegisterKernelCmd min columns
-3.fix config save failed</li>
+        <li><b>0.0.45</b></li>
+        <p>1.update config panel<br/>2.support quick change maven or jdk path in tool window<br/>3.remove outdate apis</p>
       </ul>
     ]]>
     </change-notes>

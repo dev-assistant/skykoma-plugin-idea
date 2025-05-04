@@ -16,7 +16,7 @@ import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import io.vertx.core.Vertx;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -233,7 +233,7 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
     private static void reloadConfig() {
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
         String configAddress = propertiesComponent.getValue(SkykomaConstants.AGENT_SERVER_LISTEN_ADDRESS, "");
-        if (StringUtils.isEmpty(configAddress)) {
+        if (StringUtils.isBlank(configAddress)) {
             configAddress = SkykomaConstants.AGENT_SERVER_LISTEN_ADDRESS_DEFAULT;
         }
         int configPort = propertiesComponent.getInt(SkykomaConstants.AGENT_SERVER_LISTEN_PORT,
@@ -319,7 +319,7 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
                 LOGGER.info("Jupyter Kernel stopped.");
                 break;
             } else {
-                jupyterServerThread.stop();
+//                jupyterServerThread.stop();
 //            kernelStatus.set("ERROR"); // 或保留为"STOPPING"以允许重试
                 LOGGER.error("Jupyter Kernel thread did not stop with retry left " + maxTry);
                 // 考虑其他清理逻辑，但保持jupyterServerThread引用以便后续处理
