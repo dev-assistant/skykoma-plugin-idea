@@ -16,6 +16,15 @@ public class ProjectUtils {
 
     }
 
+    public static void updateProjectMaven(String homePath, Project project) {
+        String currentMavenHomePath = getCurrentMavenHomePath(project);
+        if (currentMavenHomePath.equals(homePath)) {
+            return;
+        }
+        MavenProjectsManager.getInstance(project).getGeneralSettings().setMavenHome(homePath);
+        System.out.println(String.format("skykoma projectMaven update succ, homePath = %s", homePath));
+    }
+
     public static void updateProjectJdk(String homePath, Project project) {
         Sdk jdkFromHomePath = createSdkFromHomePath(homePath);
         if (jdkFromHomePath == null) {
@@ -115,4 +124,17 @@ public class ProjectUtils {
         FileDocumentManager.getInstance().saveAllDocuments();
         projectsManager.forceUpdateAllProjectsOrFindAllAvailablePomFiles();
     }
+
+    public static String getCurrentMavenHomePath(Project project) {
+        return MavenProjectsManager.getInstance(project).getGeneralSettings().getMavenHome();
+    }
+    public static String getCurrentSdkHomePath(Project project) {
+        ProjectRootManager projectRootManager = ProjectRootManager.getInstance(project);
+        Sdk projectSdk = projectRootManager.getProjectSdk();
+        if (projectSdk != null && projectSdk.getHomePath() != null) {
+            return projectSdk.getHomePath();
+        }
+        return "";
+    }
+
 }

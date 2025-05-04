@@ -132,6 +132,12 @@ fun Project.updateJdk(homePath: String) {
     }
 }
 
+fun Project.updateMaven(homePath: String) {
+    invokeLater {
+        ProjectUtils.updateProjectMaven(homePath, this)
+    }
+}
+
 fun Project.mavenReImport() {
     invokeLater {
         ProjectUtils.mavenReImport(this)

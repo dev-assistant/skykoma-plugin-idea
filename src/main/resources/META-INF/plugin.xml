@@ -58,7 +58,7 @@
         </action> -->
     </actions>
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="Skykoma" anchor="right" icon="/tool-window-icon.svg"
+        <toolWindow id="Skykoma" anchor="right" icon="/skykoma-tool-window-icon.svg"
                     factoryClass="cn.hylstudio.skykoma.plugin.idea.toolwindow.SkykomaToolWindowFactory"/>
         <applicationConfigurable instance="cn.hylstudio.skykoma.plugin.idea.config.IdeaPluginSettingsDialog" />
         <applicationConfigurable instance="cn.hylstudio.skykoma.plugin.idea.config.IdeaPluginCodeGenSettingsDialog" />

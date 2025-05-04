@@ -2,7 +2,11 @@ package cn.hylstudio.skykoma.plugin.idea.util
 
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectLocator
+import com.intellij.openapi.vcs.FilePath
+import com.intellij.openapi.vcs.LocalFilePath
 import com.intellij.openapi.vcs.changes.actions.RefreshAction
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindowId
 import com.intellij.vcs.log.impl.VcsProjectLog
 import com.intellij.vcs.log.util.VcsLogUtil
@@ -124,4 +128,13 @@ fun Project.refreshGitLogsUi(showUi: Boolean = true) {
             println("refresh ui finished")
         }
     }
+}
+
+fun VirtualFile.isIgnoredByGit(): Boolean {
+    val virtualFile: VirtualFile = this
+    val project: Project = ProjectLocator.getInstance().guessProjectForFile(virtualFile) ?: return false
+    val repoManager = GitRepositoryManager.getInstance(project)
+    val repository: GitRepository = repoManager.getRepositoryForFile(virtualFile) ?: return false
+    val path: FilePath = LocalFilePath(virtualFile.path, virtualFile.isDirectory)
+    return repository.ignoredFilesHolder.containsFile(path)
 }
