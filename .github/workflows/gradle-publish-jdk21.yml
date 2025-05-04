@@ -10,7 +10,7 @@ name: Auto Release
 on:
   push:
     tags:
-    - 'v0.0.*'
+    - 'v0.1.*'
 jobs:
   release:
     name: Release
@@ -23,17 +23,17 @@ jobs:
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
     - name: Checkout barnch
       uses: actions/checkout@v4.1.1
-    - name: Set up JDK 17
+    - name: Set up JDK 21
       uses: actions/setup-java@v3.13.0
       with:
-        java-version: '17'
+        java-version: '21'
         distribution: 'temurin'
         server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
         settings-path: ${{ github.workspace }} # location for the settings.xml file
     - name: Build with Gradle
       uses: gradle/gradle-build-action@v2.9.0
       with:
-        gradle-version: '7.4.2'
+        gradle-version: '8.14'
         arguments: buildPlugin -PprojVersion=${{steps.get_version.outputs.VERSION}}
 #        arguments: buildPlugin publishPlugin -PprojVersion=${{steps.get_version.outputs.VERSION}} -PpublishToken={{secrets.IDEA_PUBLISH_TOKEN}}
     - name: Create Release
