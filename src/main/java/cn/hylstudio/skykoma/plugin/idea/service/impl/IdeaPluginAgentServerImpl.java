@@ -67,12 +67,16 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         info(LOGGER, String.format("registerAsJupyterKernel, cmdArr = [%s]", arrToString(cmds)));
         try {
             boolean registerSucc = registerCustomKernel(cmds);
-            if (registerSucc) {
-                String kernelJsonPath = getKernelJsonPath();
-                updateKernelJson(kernelJsonPath, pythonExecutable);
-            }
         } catch (Exception e) {
             String registerError = String.format("registerAsJupyterKernel error, e = [%s]", e.getMessage());
+            error(LOGGER, registerError, e);
+            SkykomaNotifier.notifyError(registerError);
+        }
+        try {
+            String kernelJsonPath = getKernelJsonPath();
+            updateKernelJson(kernelJsonPath, pythonExecutable);
+        } catch (Exception e) {
+            String registerError = String.format("updateKernelJson error, e = [%s]", e.getMessage());
             error(LOGGER, registerError, e);
             SkykomaNotifier.notifyError(registerError);
         }
