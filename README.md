@@ -35,7 +35,9 @@ $SKYKOMA_PYTHON_BIN/jupyter lab
 #set ip
 $SKYKOMA_PYTHON_BIN/jupyter lab --ip=0.0.0.0 
 #allow root
-$SKYKOMA_PYTHON_BIN/jupyter lab --ip=0.0.0.0 --allow-root 
+$SKYKOMA_PYTHON_BIN/jupyter lab --ip=0.0.0.0 --allow-root
+#using jupyter mcp client
+$SKYKOMA_PYTHON_BIN/jupyter lab --IdentityProvider.token=MY_TOKEN --ip=0.0.0.0 --allow-root
 ```
 demo见[这个文件](./demo/demo.ipynb)
 
