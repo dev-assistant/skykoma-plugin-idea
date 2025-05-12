@@ -104,7 +104,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
         appendField(jupyterPanel, "Kernel Name:", jupyterKernelName);
 
         jupyterPythonExecutable = new TextFieldWithBrowseButton();
-        FileChooserDescriptor singleDir = new FileChooserDescriptor(false, true, false, false, false, false);
+        FileChooserDescriptor singleFile = new FileChooserDescriptor(true, false, false, false, false, false);
         jupyterPythonExecutable.addBrowseFolderListener(new TextBrowseFolderListener(singleDir.withTitle("Select Python Executable"), null));
         jupyterPythonExecutable.setText(propertiesComponent.getValue(JUPYTER_PYTHON_EXECUTABLE, JUPYTER_PYTHON_EXECUTABLE_DEFAULT));
         appendField(jupyterPanel, "Python Executable:", jupyterPythonExecutable);
