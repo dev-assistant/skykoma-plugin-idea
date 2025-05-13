@@ -23,13 +23,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.error;
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.info;
@@ -187,7 +183,11 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         // argv.add(String.format("--env KOTLIN_JUPYTER_JAVA_EXECUTABLE %s",
         // javaExecutable));
         // }
-        return argv;
+        StringTokenizer st = new StringTokenizer(arrToString(argv));
+        String[] cmdarray = new String[st.countTokens()];
+        for (int i = 0; st.hasMoreTokens(); i++)
+            cmdarray[i] = st.nextToken();
+        return Arrays.stream(cmdarray).toList();
     }
 
     private static String getUserJupyterPath(String folderName) {
