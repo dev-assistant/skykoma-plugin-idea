@@ -100,57 +100,57 @@ val PsiClass.isSpringController: Boolean
         }
     }
 
-fun JvmAnnotationAttributeValue.parseValue(): Map<String, Any> {
-    when (this) {
-        is JvmAnnotationConstantValue -> {  // For PsiAnnotationConstantValue
-            return mapOf<String, Any>(
-                "type" to "const",
-                "value" to this.constantValue.toString()
-            )
-        }
-
-        is JvmAnnotationEnumFieldValue -> {  // For PsiAnnotationEnumFieldValue
-            return mapOf<String, Any>(
-                "type" to "enum",
-                "value" to "${this.containingClassName}.${this.fieldName}"
-            )
-        }
-
-        is JvmAnnotationArrayValue -> {  // For PsiAnnotationArrayValue
-            return mapOf<String, Any>(
-                "type" to "arr",
-                "value" to this.values.map { it.parseValue() }//List<Map<String, Any>>(
-            )
-        }
-
-        is JvmAnnotationClassValue -> {  // For PsiAnnotationClassValue
-            return mapOf<String, Any>(
-                "type" to "class",
-                "value" to (this.qualifiedName ?: "")
-            )
-        }
-
-        is JvmNestedAnnotationValue -> {  // For PsiNestedAnnotationValue
-            // println(this.value)
-            val annotation = this.value
-            val value: Map<String, Map<String, Any>> = annotation.attributes.associateBy(
-                { it.attributeName },
-                { it.attributeValue?.parseValue() ?: mapOf() })
-            return mapOf<String, Any>(
-                "type" to "annotation",
-                "qualifiedName" to (annotation?.qualifiedName ?: ""),
-                "value" to value
-            )
-        }
-
-        else -> {
-            // handle unexpected type
-            return mapOf<String, Any>(
-                "type" to "unknown",
-                "value" to ""
-            )
-        }
-    }
-
-
-}
+//fun JvmAnnotationAttributeValue.parseValue(): Map<String, Any> {
+//    when (this) {
+//        is JvmAnnotationConstantValue -> {  // For PsiAnnotationConstantValue
+//            return mapOf<String, Any>(
+//                "type" to "const",
+//                "value" to this.constantValue.toString()
+//            )
+//        }
+//
+//        is JvmAnnotationEnumFieldValue -> {  // For PsiAnnotationEnumFieldValue
+//            return mapOf<String, Any>(
+//                "type" to "enum",
+//                "value" to "${this.containingClassName}.${this.fieldName}"
+//            )
+//        }
+//
+//        is JvmAnnotationArrayValue -> {  // For PsiAnnotationArrayValue
+//            return mapOf<String, Any>(
+//                "type" to "arr",
+//                "value" to this.values.map { it.parseValue() }//List<Map<String, Any>>(
+//            )
+//        }
+//
+//        is JvmAnnotationClassValue -> {  // For PsiAnnotationClassValue
+//            return mapOf<String, Any>(
+//                "type" to "class",
+//                "value" to (this.qualifiedName ?: "")
+//            )
+//        }
+//
+//        is JvmNestedAnnotationValue -> {  // For PsiNestedAnnotationValue
+//            // println(this.value)
+//            val annotation = this.value
+//            val value: Map<String, Map<String, Any>> = annotation.attributes.associateBy(
+//                { it.attributeName },
+//                { it.attributeValue?.parseValue() ?: mapOf() })
+//            return mapOf<String, Any>(
+//                "type" to "annotation",
+//                "qualifiedName" to (annotation?.qualifiedName ?: ""),
+//                "value" to value
+//            )
+//        }
+//
+//        else -> {
+//            // handle unexpected type
+//            return mapOf<String, Any>(
+//                "type" to "unknown",
+//                "value" to ""
+//            )
+//        }
+//    }
+//
+//
+//}
