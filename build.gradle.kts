@@ -61,6 +61,9 @@ java {
         languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
+configurations.all {
+    exclude(group = "kotlin-jupyter-kernel", module = "kernel-compiler-impl")
+}
 dependencies {
     intellijPlatform {
 //        intellijIdeaCommunity("2024.2.6")
@@ -83,8 +86,13 @@ dependencies {
 //    implementation("com.google.code.gson:gson:2.10.1")
 //    implementation("com.google.guava:guava:31.1-jre")
     implementation("org.jetbrains.kotlinx:kotlin-jupyter-api:0.19.0-948")
-    implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:0.19.0-948")
+    implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:0.19.0-948") {
+        // Match the exact group string from the module metadata file
+        exclude(group = "kotlin-jupyter-kernel", module = "kernel-compiler-impl")
+    }
 
+    // Inject your local file replacement
+    implementation(files("src/main/resources/kernel-compiler-impl-0.19.0-948.jar"))
     implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.10")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl-embeddable:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20")
