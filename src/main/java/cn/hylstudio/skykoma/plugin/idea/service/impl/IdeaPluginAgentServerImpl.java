@@ -266,7 +266,7 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
             LOGGER.info("startJupyterKernel skipped, current status = " + kernelStatus.get());
             return;
         }
-        stopJupyterKernel();  // 确保不会有旧的实例
+        stopJupyterKernel();
         IdeaPluginDescriptor ideaPluginDescriptor = Arrays.stream(PluginManagerCore.getPlugins())
                 .filter(v -> v.getPluginId().getIdString().equals(SkykomaConstants.PLUGIN_ID))
                 .findFirst().orElse(null);
@@ -299,7 +299,7 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
         });
 
         jupyterServerThread.setContextClassLoader(pluginClassLoader);
-        jupyterServerThread.setDaemon(false);  // 设置守护线程
+        jupyterServerThread.setDaemon(false);
         jupyterServerThread.start();
         SkykomaNotifier.notifyInfo("Jupyter kernel is starting...");
     }

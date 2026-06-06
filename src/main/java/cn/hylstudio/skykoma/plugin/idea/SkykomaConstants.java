@@ -79,6 +79,8 @@ public class SkykomaConstants {
     }
 
     public static final String JUPYTER_KERNEL_NAME = PLUGIN_CONFIG_PREFIX + "jupyter_kernel_name";
+    public static final String JUPYTER_EXTRA_CLASSPATH = PLUGIN_CONFIG_PREFIX + "jupyter_extra_classpath";
+    public static final String JUPYTER_EXTRA_CLASSPATH_DEFAULT = "";
     public static final String JUPYTER_KERNEL_NAME_PREFIX = "skykoma-agent-";
     public static final String JUPYTER_KERNEL_NAME_DEFAULT = "idea";
 

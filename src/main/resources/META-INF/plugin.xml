@@ -14,7 +14,7 @@
     <depends>com.intellij.java</depends>
     <depends>org.jetbrains.idea.maven</depends>
     <depends>Git4Idea</depends>
-
+    <depends>org.jetbrains.kotlin</depends>
     <!-- Text to display as description on Preferences/Settings | Plugin page -->
     <description>
         <![CDATA[
@@ -84,6 +84,10 @@
         <notificationGroup id="Skykoma Notification - error"
                            displayType="STICKY_BALLOON"
                            key="skykoma.notifications.error"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="org.jetbrains.kotlin">
+        <supportsKotlinPluginMode supportsK2="true" />
     </extensions>
     <applicationListeners>
         <listener class="cn.hylstudio.skykoma.plugin.idea.listener.ProjectOpenCloseListener"

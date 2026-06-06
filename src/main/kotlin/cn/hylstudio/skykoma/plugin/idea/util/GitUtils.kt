@@ -125,7 +125,7 @@ fun Project.refreshGitLogsUi(showUi: Boolean = true) {
                 println("Git tool window activated.")
             }
         }
-        val logUis = logManager.logUis
+        val logUis = logManager.getLogUis()
         WriteCommandAction.runWriteCommandAction(project) {
             if (logUis.size > 0) {
                 dataManager.refresh(VcsLogUtil.getVisibleRoots(logUis[0]));
