@@ -26,10 +26,20 @@ repositories {
         defaultRepositories()
     }
 }
+//configurations.configureEach {
+//    resolutionStrategy.dependencySubstitution {
+//        substitute(module("org.jetbrains.kotlinx:kotlinx-coroutines-core"))
+//            .using(module("org.jetbrains.intellij.deps.kotlinx:kotlinx-coroutines-core:1.10.2-intellij-1"))
+//        substitute(module("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm"))
+//            .using(module("org.jetbrains.intellij.deps.kotlinx:kotlinx-coroutines-core-jvm:1.10.2-intellij-1"))
+//        substitute(module("org.jetbrains.kotlinx:kotlinx-coroutines-bom"))
+//            .using(module("org.jetbrains.intellij.deps.kotlinx:kotlinx-coroutines-bom:1.10.2-intellij-1"))
+//    }
+//}
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "2.1.20"
-    id("org.jetbrains.kotlin.jupyter.api") version "0.12.0-424"
+    id("org.jetbrains.kotlin.jvm") version "2.3.10"
+    id("org.jetbrains.kotlin.jupyter.api") version "0.19.0-948"
 //    id("org.jetbrains.intellij") version "1.13.0"
     id("org.jetbrains.intellij.platform") version "2.16.0"
 //    id("org.jetbrains.intellij.platform.migration") version "2.5.0"
@@ -72,14 +82,14 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
 //    implementation("com.google.code.gson:gson:2.10.1")
 //    implementation("com.google.guava:guava:31.1-jre")
-    implementation("org.jetbrains.kotlinx:kotlin-jupyter-api:0.12.0-424")
-    implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:0.12.0-424")
+    implementation("org.jetbrains.kotlinx:kotlin-jupyter-api:0.19.0-948")
+    implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:0.19.0-948")
 
-    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:1.9.23")
+    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.10")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl-embeddable:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-script-runtime:1.8.20")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:1.9.23")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:2.3.10")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-common:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-compiler-fe10-for-ide:1.8.20")
