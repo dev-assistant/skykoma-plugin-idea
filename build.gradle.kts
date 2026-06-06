@@ -31,7 +31,7 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "2.1.20"
     id("org.jetbrains.kotlin.jupyter.api") version "0.12.0-424"
 //    id("org.jetbrains.intellij") version "1.13.0"
-    id("org.jetbrains.intellij.platform") version "2.5.0"
+    id("org.jetbrains.intellij.platform") version "2.16.0"
 //    id("org.jetbrains.intellij.platform.migration") version "2.5.0"
 }
 
@@ -39,7 +39,7 @@ group = "cn.hylstudio.skykoma.plugin.idea"
 version = if (project.hasProperty("projVersion")) {
     project.findProperty("projVersion") as String
 } else {
-    "0.1.12"
+    "0.1.13"
 }
 
 kotlin {
@@ -54,7 +54,9 @@ java {
 dependencies {
     intellijPlatform {
 //        intellijIdeaCommunity("2024.2.6")
-        intellijIdeaCommunity("2025.1")
+//        intellijIdeaCommunity("2025.1")
+        intellijIdea("2026.1")
+//        intellijIdea("2026.1.2")
 //        plugins()
 //        bundledPlugins()
         bundledPlugins(

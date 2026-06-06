@@ -31,6 +31,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
     private JTextField threadsField;
     private TextFieldWithBrowseButton jupyterPythonExecutable;
     private JTextField jupyterKernelName;
+    private JTextField jupyterExtraClasspath;
     private JTextField agentServerListenAddress;
     private JTextField agentServerListenPort;
     private JTextField jupyterKernelHbPort;
@@ -109,6 +110,10 @@ public class IdeaPluginSettingsDialog implements Configurable {
         jupyterPythonExecutable.setText(propertiesComponent.getValue(JUPYTER_PYTHON_EXECUTABLE, JUPYTER_PYTHON_EXECUTABLE_DEFAULT));
         appendField(jupyterPanel, "Python Executable:", jupyterPythonExecutable);
 
+        jupyterExtraClasspath = new JBTextField();
+        jupyterExtraClasspath.setText(propertiesComponent.getValue(JUPYTER_EXTRA_CLASSPATH, JUPYTER_EXTRA_CLASSPATH_DEFAULT));
+        appendField(jupyterPanel, "Extra Classpath:", jupyterExtraClasspath);
+
         jupyterKernelHbPort = new JBTextField();
         jupyterKernelHbPort.setText(String.valueOf(propertiesComponent.getInt(JUPYTER_SERVER_HB_PORT, JUPYTER_SERVER_HB_PORT_DEFAULT)));
         appendField(jupyterPanel, "HB Port:", jupyterKernelHbPort);
@@ -159,6 +164,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
                 Objects.equals(agentServerListenPort.getText(), propertiesComponent.getValue(AGENT_SERVER_LISTEN_PORT, AGENT_SERVER_LISTEN_PORT_DEFAULT + "")) &&
                 Objects.equals(jupyterKernelName.getText(), propertiesComponent.getValue(JUPYTER_KERNEL_NAME, JUPYTER_KERNEL_NAME_DEFAULT)) &&
                 Objects.equals(jupyterPythonExecutable.getText(), propertiesComponent.getValue(JUPYTER_PYTHON_EXECUTABLE, JUPYTER_PYTHON_EXECUTABLE_DEFAULT)) &&
+                Objects.equals(jupyterExtraClasspath.getText(), propertiesComponent.getValue(JUPYTER_EXTRA_CLASSPATH, JUPYTER_EXTRA_CLASSPATH_DEFAULT)) &&
                 Objects.equals(jupyterKernelHbPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_HB_PORT, JUPYTER_SERVER_HB_PORT_DEFAULT + "")) &&
                 Objects.equals(jupyterKernelShellPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_SHELL_PORT, JUPYTER_SERVER_SHELL_PORT_DEFAULT + "")) &&
                 Objects.equals(jupyterKernelIopubPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_IOPUB_PORT, JUPYTER_SERVER_IOPUB_PORT_DEFAULT + "")) &&
@@ -177,6 +183,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
         propertiesComponent.setValue(AGENT_SERVER_LISTEN_PORT, agentServerListenPort.getText());
         propertiesComponent.setValue(JUPYTER_KERNEL_NAME, jupyterKernelName.getText());
         propertiesComponent.setValue(JUPYTER_PYTHON_EXECUTABLE, jupyterPythonExecutable.getText());
+        propertiesComponent.setValue(JUPYTER_EXTRA_CLASSPATH, jupyterExtraClasspath.getText());
         propertiesComponent.setValue(JUPYTER_SERVER_HB_PORT, jupyterKernelHbPort.getText());
         propertiesComponent.setValue(JUPYTER_SERVER_SHELL_PORT, jupyterKernelShellPort.getText());
         propertiesComponent.setValue(JUPYTER_SERVER_IOPUB_PORT, jupyterKernelIopubPort.getText());

@@ -3,6 +3,7 @@ package cn.hylstudio.skykoma.plugin.idea
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.intellij.ide.util.PropertiesComponent
 import org.jetbrains.kotlinx.jupyter.api.CodeEvaluator
 import org.jetbrains.kotlinx.jupyter.api.EmbeddedKernelRunMode
 import org.jetbrains.kotlinx.jupyter.api.libraries.JupyterConnection
@@ -174,7 +175,12 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
         log.info("ideaCp1: " + ideaCp1.joinToString())
         val ideaCp2 = KotlinJars.kotlinScriptStandardJars
         log.info("ideaCp2: " + ideaCp2.joinToString())
-        val cp = systemClassPath + ideaCp1 + ideaCp2
+        val extraClasspathValue = PropertiesComponent.getInstance()
+            .getValue(SkykomaConstants.JUPYTER_EXTRA_CLASSPATH, SkykomaConstants.JUPYTER_EXTRA_CLASSPATH_DEFAULT)
+        val extraClasspath = extraClasspathValue.split(File.pathSeparator)
+            .filter { it.isNotBlank() }
+            .map { File(it.trim()) }
+        val cp = systemClassPath + ideaCp1 + ideaCp2 + extraClasspath
         val scriptClassPath = cp.distinct()
 //        val kernelConfig = KernelArgs(kernelConfigTmp.cfgFile, cp, null, kernelConfigTmp.debugPort, kernelConfigTmp.clientType, kernelConfigTmp.jvmTargetForSnippets).getConfig()
         val kernelConfig = KernelArgs(
