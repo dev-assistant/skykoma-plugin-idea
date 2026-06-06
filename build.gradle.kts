@@ -64,6 +64,8 @@ java {
 configurations.all {
     exclude(group = "kotlin-jupyter-kernel", module = "kernel-compiler-impl")
 }
+val jupyterApiVersion = "0.19.0-948";
+val kernelCompilerImplJarPath = "src/main/resources/kernel-compiler-impl-${jupyterApiVersion}.jar"
 dependencies {
     intellijPlatform {
 //        intellijIdeaCommunity("2024.2.6")
@@ -85,14 +87,12 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
 //    implementation("com.google.code.gson:gson:2.10.1")
 //    implementation("com.google.guava:guava:31.1-jre")
-    implementation("org.jetbrains.kotlinx:kotlin-jupyter-api:0.19.0-948")
-    implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:0.19.0-948") {
+    implementation("org.jetbrains.kotlinx:kotlin-jupyter-api:${jupyterApiVersion}")
+    implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:${jupyterApiVersion}") {
         // Match the exact group string from the module metadata file
         exclude(group = "kotlin-jupyter-kernel", module = "kernel-compiler-impl")
     }
-
-    // Inject your local file replacement
-    implementation(files("src/main/resources/kernel-compiler-impl-0.19.0-948.jar"))
+    implementation(files(kernelCompilerImplJarPath))
     implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.10")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl-embeddable:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20")
@@ -144,14 +144,27 @@ tasks {
 //    verifyPluginConfiguration {
 //        kotlinStdlibDefaultDependency.set(false)
 //    }
+    prepareSandbox {
+        doLast {
+            val kernelCompilerImplJarSrc = kernelCompilerImplJarPath
+            val kernelCompilerImplJarDest = listOf(
+                destinationDir, project.name, "lib"
+            ).joinToString(File.separator)
+            copy {
+                from(kernelCompilerImplJarSrc)
+                into(kernelCompilerImplJarDest)
+            }
 
-//    prepareSandbox {
-//        doLast {
 //            val config = loadProperties(file("local.properties").path)
-//            val bundleKotlincSrc = config.getProperty("bundle.kotlinc.path", dependencySrcKotlincPath())
+//            val bundleKotlinPluginSrc = config.getProperty("bundle.kotlinc.path", "")
+//            val bundleKotlinPluginDest = listOf(destinationDir, "Kotlin").joinToString(File.separator)
+//            copy {
+//                from(bundleKotlinPluginSrc)
+//                into(bundleKotlinPluginDest)
+//            }
+//            val bundleKotlincSrc = listOf(bundleKotlinSrc, "kotlinc").joinToString(File.separator)
 //            val bundleKotlincDest = listOf(
-//                    defaultDestinationDir.map { it.path }.getOrElse(""),
-//                    project.name, "kotlinc"
+//                destinationDir, project.name, "kotlinc"
 //            ).joinToString(File.separator)
 //            println("bundleKotlincSrc = \"$bundleKotlincSrc\"")
 //            println("bundleKotlincDest = \"$bundleKotlincDest\"")
@@ -159,8 +172,8 @@ tasks {
 //                from(bundleKotlincSrc)
 //                into(bundleKotlincDest)
 //            }
-//        }
-//    }
+        }
+    }
 //    publishPlugin {
 //        var publishToken = ""
 //        if (project.hasProperty("publishToken")) {
