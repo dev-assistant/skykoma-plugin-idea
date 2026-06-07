@@ -39,7 +39,7 @@ repositories {
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.3.10"
-    id("org.jetbrains.kotlin.jupyter.api") version "0.19.0-948"
+    id("org.jetbrains.kotlin.jupyter.api") version "0.19.0-950"
 //    id("org.jetbrains.intellij") version "1.13.0"
     id("org.jetbrains.intellij.platform") version "2.16.0"
 //    id("org.jetbrains.intellij.platform.migration") version "2.5.0"
@@ -61,10 +61,8 @@ java {
         languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
-configurations.all {
-    exclude(group = "kotlin-jupyter-kernel", module = "kernel-compiler-impl")
-}
-val jupyterApiVersion = "0.19.0-948";
+val jupyterApiVersion = "0.19.0-950";
+val kernelEmbeddableJarPath = "src/main/resources/embeddableKernel-${jupyterApiVersion}.jar"
 val kernelCompilerImplJarPath = "src/main/resources/kernel-compiler-impl-${jupyterApiVersion}.jar"
 dependencies {
     intellijPlatform {
@@ -90,16 +88,20 @@ dependencies {
 //    implementation("com.google.guava:guava:31.1-jre")
     compileOnly("org.jetbrains.kotlinx:kotlin-jupyter-api:${jupyterApiVersion}")
     implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:${jupyterApiVersion}") {
-        // Match the exact group string from the module metadata file
+        // Avoid shipping the non-relocated compiler implementation;
+        // the relocated embeddableKernel jar provides the shaded compiler.
         exclude(group = "kotlin-jupyter-kernel", module = "kernel-compiler-impl")
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-scripting-common")
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-compiler-embeddable")
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-scripting-compiler-embeddable")
     }
-    implementation(files(kernelCompilerImplJarPath))
-    compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.10")
+//    implementation(files(kernelCompilerImplJarPath))
+    implementation(files(kernelEmbeddableJarPath))
+//    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.10")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl-embeddable:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-script-runtime:1.8.20")
-    compileOnly("org.jetbrains.kotlin:kotlin-scripting-jvm:2.3.10")
+//    compileOnly("org.jetbrains.kotlin:kotlin-scripting-jvm:2.3.10")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-common:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-compiler-fe10-for-ide:1.8.20")
@@ -148,13 +150,13 @@ tasks {
 //    }
     prepareSandbox {
         doLast {
-            val kernelCompilerImplJarSrc = kernelCompilerImplJarPath
-            val kernelCompilerImplJarDest = listOf(
+            val sandboxLibDir = listOf(
                 destinationDir, project.name, "lib"
             ).joinToString(File.separator)
             copy {
-                from(kernelCompilerImplJarSrc)
-                into(kernelCompilerImplJarDest)
+                from(kernelEmbeddableJarPath)
+                from(kernelCompilerImplJarPath)
+                into(sandboxLibDir)
             }
 
 //            val config = loadProperties(file("local.properties").path)

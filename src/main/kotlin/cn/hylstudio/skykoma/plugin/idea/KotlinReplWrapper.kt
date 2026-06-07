@@ -56,7 +56,7 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
     val defaultRuntimeProperties by lazy {
         val defaultMap = mapOf(
             "version" to "0.0.1",
-            "kotlinVersion" to "3.1.10",
+            "kotlinVersion" to "2.3.10",
             "currentBranch" to "skykoma-plugin",
             "currentSha" to "skykoma-plugin",
             "jvmTargetForSnippets" to "21",
