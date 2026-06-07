@@ -76,6 +76,13 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
                 scriptCompilationClasspathFromContextOrStdlib(wholeClasspath = true, classLoader = pluginClassLoader)
             log.info("ideaCp1: " + ideaCp1.joinToString())
             val ideaCp2 = KotlinJars.kotlinScriptStandardJars
+            //compilerClasspath kotlin-compiler-embeddable-2.3.10.jar
+            //compilerWithScriptingClasspath kotlin-compiler-embeddable-2.3.10.jar
+            //stdlibOrNull kotlin-stdlib-2.4.0-dev-6891.jar
+            //reflectOrNull  idea-2026.1-win\lib\intellij.libraries.kotlin.reflect.jar
+            //scriptRuntimeOrNull kotlin-script-runtime-2.4.0-dev-6891.jar
+            //kotlinScriptStandardJars  kotlin-stdlib-2.4.0-dev-6891.jar kotlin-script-runtime-2.4.0-dev-6891.jar"
+            //kotlinScriptStandardJarsWithReflect idea-2026.1-win\lib\intellij.libraries.kotlin.reflect.jar"
             log.info("ideaCp2: " + ideaCp2.joinToString())
             val extraClasspathValue = PropertiesComponent.getInstance()
                 .getValue(SkykomaConstants.JUPYTER_EXTRA_CLASSPATH, SkykomaConstants.JUPYTER_EXTRA_CLASSPATH_DEFAULT)
@@ -91,7 +98,7 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
                     debugPort = kernelArgs.ownParams.debugPort,
                     clientType = kernelArgs.ownParams.clientType,
                     jvmTargetForSnippets = defaultRuntimeProperties.jvmTargetForSnippets,
-                    replCompilerMode = ReplCompilerMode.DEFAULT,
+                    replCompilerMode = ReplCompilerMode.K2,
                     extraCompilerArguments = emptyList(),
                 )
             val kernelConfig =

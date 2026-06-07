@@ -78,7 +78,8 @@ dependencies {
             listOf(
                 "Git4Idea",
                 "com.intellij.java",
-                "org.jetbrains.idea.maven"
+                "org.jetbrains.idea.maven",
+                "org.jetbrains.kotlin"
             )
         )
     }
@@ -87,17 +88,18 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
 //    implementation("com.google.code.gson:gson:2.10.1")
 //    implementation("com.google.guava:guava:31.1-jre")
-    implementation("org.jetbrains.kotlinx:kotlin-jupyter-api:${jupyterApiVersion}")
+    compileOnly("org.jetbrains.kotlinx:kotlin-jupyter-api:${jupyterApiVersion}")
     implementation("org.jetbrains.kotlinx:kotlin-jupyter-kernel:${jupyterApiVersion}") {
         // Match the exact group string from the module metadata file
         exclude(group = "kotlin-jupyter-kernel", module = "kernel-compiler-impl")
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-scripting-common")
     }
     implementation(files(kernelCompilerImplJarPath))
-    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.10")
+    compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.10")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl-embeddable:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-script-runtime:1.8.20")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:2.3.10")
+    compileOnly("org.jetbrains.kotlin:kotlin-scripting-jvm:2.3.10")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-impl:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-common:1.8.20")
 //    implementation("org.jetbrains.kotlin:kotlin-compiler-fe10-for-ide:1.8.20")
