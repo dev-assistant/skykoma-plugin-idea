@@ -78,6 +78,9 @@
         <applicationService
                         serviceInterface="cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer"
                         serviceImplementation="cn.hylstudio.skykoma.plugin.idea.service.impl.IdeaPluginAgentServerImpl"/>
+        <applicationService
+                        serviceInterface="cn.hylstudio.skykoma.plugin.idea.service.PythonEnvService"
+                        serviceImplementation="cn.hylstudio.skykoma.plugin.idea.service.impl.PythonEnvServiceImpl"/>
         <notificationGroup id="Skykoma Notification - default"
                            displayType="BALLOON"
                            key="skykoma.notifications.default"/>

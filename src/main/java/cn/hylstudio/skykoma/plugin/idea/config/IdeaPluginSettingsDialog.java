@@ -1,9 +1,7 @@
 package cn.hylstudio.skykoma.plugin.idea.config;
 
-import cn.hylstudio.skykoma.plugin.idea.service.IProjectInfoService;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
-import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.ui.TextBrowseFolderListener;
@@ -11,6 +9,7 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.components.panels.VerticalBox;
 import org.jetbrains.annotations.Nls;
@@ -29,6 +28,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
     private JTextField apiHostField;
     private JTextField apiKeyField;
     private JTextField threadsField;
+    private TextFieldWithBrowseButton python312Executable;
     private TextFieldWithBrowseButton jupyterPythonExecutable;
     private JTextField jupyterKernelName;
     private JTextField jupyterExtraClasspath;
@@ -39,6 +39,10 @@ public class IdeaPluginSettingsDialog implements Configurable {
     private JTextField jupyterKernelIopubPort;
     private JTextField jupyterKernelStdinPort;
     private JTextField jupyterKernelControlPort;
+    private JTextField pythonVenvPath;
+    private JTextField pythonDownloadUrl;
+    private JTextArea pythonPipPackages;
+    private JTextField pythonPipMirror;
 
     @Nls
     @Override
@@ -50,7 +54,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
     @Override
     public JComponent createComponent() {
         JPanel container = new JPanel(new BorderLayout());
-        JPanel mainPanel = new JPanel(new BorderLayout()); // 使用 BorderLayout 以便铺满宽度
+        JPanel mainPanel = new JPanel(new BorderLayout());
         VerticalBox mainVBox = new VerticalBox();
         mainPanel.add(mainVBox, BorderLayout.NORTH);
         mainVBox.add(new TitledSeparator("Data Server"));
@@ -94,21 +98,63 @@ public class IdeaPluginSettingsDialog implements Configurable {
         mainVBox.add(agentServerPanel);
         mainVBox.add(Box.createVerticalStrut(5));
 
+        mainVBox.add(new TitledSeparator("Python Environment"));
+        JPanel pythonEnvPanel = new JPanel();
+        pythonEnvPanel.setLayout(new BoxLayout(pythonEnvPanel, BoxLayout.Y_AXIS));
+
+        python312Executable = new TextFieldWithBrowseButton();
+        FileChooserDescriptor singleFile = new FileChooserDescriptor(true, false, false, false, false, false);
+        python312Executable.addBrowseFolderListener(new TextBrowseFolderListener(singleFile.withTitle("Select Python 3.12 Executable"), null));
+        python312Executable.setText(propertiesComponent.getValue(PYTHON312_EXECUTABLE, PYTHON312_EXECUTABLE_DEFAULT));
+        appendField(pythonEnvPanel, "Python 3.12:", python312Executable);
+
+        pythonVenvPath = new JBTextField();
+        pythonVenvPath.setText(propertiesComponent.getValue(PYTHON_VENV_PATH, PYTHON_VENV_PATH_DEFAULT));
+        appendField(pythonEnvPanel, "Venv Path:", pythonVenvPath);
+
+        pythonDownloadUrl = new JBTextField();
+        pythonDownloadUrl.setText(propertiesComponent.getValue(PYTHON_DOWNLOAD_URL, PYTHON_DOWNLOAD_URL_DEFAULT));
+        appendField(pythonEnvPanel, "Python 3.12 Download:", pythonDownloadUrl);
+
+        mainVBox.add(pythonEnvPanel);
+        mainVBox.add(Box.createVerticalStrut(5));
+
         mainVBox.add(new TitledSeparator("Jupyter Kernel"));
         JPanel jupyterPanel = new JPanel();
         jupyterPanel.setLayout(new BoxLayout(jupyterPanel, BoxLayout.Y_AXIS));
 
-        JPanel kernelNamePanel = new JBPanel<>();
-        kernelNamePanel.setLayout(new BoxLayout(kernelNamePanel, BoxLayout.X_AXIS));
         jupyterKernelName = new JBTextField();
         jupyterKernelName.setText(propertiesComponent.getValue(JUPYTER_KERNEL_NAME, JUPYTER_KERNEL_NAME_DEFAULT));
         appendField(jupyterPanel, "Kernel Name:", jupyterKernelName);
 
         jupyterPythonExecutable = new TextFieldWithBrowseButton();
-        FileChooserDescriptor singleFile = new FileChooserDescriptor(true, false, false, false, false, false);
-        jupyterPythonExecutable.addBrowseFolderListener(new TextBrowseFolderListener(singleFile.withTitle("Select Python Executable"), null));
+        jupyterPythonExecutable.addBrowseFolderListener(new TextBrowseFolderListener(singleFile.withTitle("Select Kernel Python Executable"), null));
         jupyterPythonExecutable.setText(propertiesComponent.getValue(JUPYTER_PYTHON_EXECUTABLE, JUPYTER_PYTHON_EXECUTABLE_DEFAULT));
-        appendField(jupyterPanel, "Python Executable:", jupyterPythonExecutable);
+        appendField(jupyterPanel, "Kernel Python:", jupyterPythonExecutable);
+
+        JPanel pipPackagesPanel = new JPanel();
+        pipPackagesPanel.setLayout(new BoxLayout(pipPackagesPanel, BoxLayout.X_AXIS));
+        pipPackagesPanel.add(new JLabel("Pip Packages:"));
+        pythonPipPackages = new JBTextArea();
+        pythonPipPackages.setText(propertiesComponent.getValue(PYTHON_PIP_PACKAGES, PYTHON_PIP_PACKAGES_DEFAULT));
+        pythonPipPackages.setRows(8);
+        JScrollPane pipScrollPane = new JBScrollPane(pythonPipPackages);
+        pipScrollPane.setPreferredSize(new Dimension(400, 150));
+        pipPackagesPanel.add(pipScrollPane);
+        jupyterPanel.add(pipPackagesPanel);
+
+        pythonPipMirror = new JBTextField();
+        pythonPipMirror.setText(propertiesComponent.getValue(PYTHON_PIP_MIRROR, PYTHON_PIP_MIRROR_DEFAULT));
+        appendField(jupyterPanel, "Pip Mirror:", pythonPipMirror);
+
+        JPanel pipResetPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton btnResetPipPackages = new JButton("Reset to Default");
+        btnResetPipPackages.addActionListener(e -> {
+            pythonPipPackages.setText(PYTHON_PIP_PACKAGES_DEFAULT);
+            pythonPipMirror.setText(PYTHON_PIP_MIRROR_DEFAULT);
+        });
+        pipResetPanel.add(btnResetPipPackages);
+        jupyterPanel.add(pipResetPanel);
 
         jupyterExtraClasspath = new JBTextField();
         jupyterExtraClasspath.setText(propertiesComponent.getValue(JUPYTER_EXTRA_CLASSPATH, JUPYTER_EXTRA_CLASSPATH_DEFAULT));
@@ -137,11 +183,9 @@ public class IdeaPluginSettingsDialog implements Configurable {
         mainVBox.add(jupyterPanel);
         mainVBox.add(Box.createVerticalStrut(5));
 
-        // Add the main panel to a scroll pane
         JBScrollPane scrollPane = new JBScrollPane(mainPanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.setPreferredSize(new Dimension(600, 300));
-        // Add the scroll pane to the container
+        scrollPane.setPreferredSize(new Dimension(600, 600));
         container.add(scrollPane, BorderLayout.CENTER);
         return container;
     }
@@ -162,6 +206,11 @@ public class IdeaPluginSettingsDialog implements Configurable {
                 Objects.equals(threadsField.getText(), propertiesComponent.getValue(DATA_SERVER_UPLOAD_THREADS, "")) &&
                 Objects.equals(agentServerListenAddress.getText(), propertiesComponent.getValue(AGENT_SERVER_LISTEN_ADDRESS, AGENT_SERVER_LISTEN_ADDRESS_DEFAULT)) &&
                 Objects.equals(agentServerListenPort.getText(), propertiesComponent.getValue(AGENT_SERVER_LISTEN_PORT, AGENT_SERVER_LISTEN_PORT_DEFAULT + "")) &&
+                Objects.equals(python312Executable.getText(), propertiesComponent.getValue(PYTHON312_EXECUTABLE, PYTHON312_EXECUTABLE_DEFAULT)) &&
+                Objects.equals(pythonVenvPath.getText(), propertiesComponent.getValue(PYTHON_VENV_PATH, PYTHON_VENV_PATH_DEFAULT)) &&
+                Objects.equals(pythonDownloadUrl.getText(), propertiesComponent.getValue(PYTHON_DOWNLOAD_URL, PYTHON_DOWNLOAD_URL_DEFAULT)) &&
+                Objects.equals(pythonPipPackages.getText(), propertiesComponent.getValue(PYTHON_PIP_PACKAGES, PYTHON_PIP_PACKAGES_DEFAULT)) &&
+                Objects.equals(pythonPipMirror.getText(), propertiesComponent.getValue(PYTHON_PIP_MIRROR, PYTHON_PIP_MIRROR_DEFAULT)) &&
                 Objects.equals(jupyterKernelName.getText(), propertiesComponent.getValue(JUPYTER_KERNEL_NAME, JUPYTER_KERNEL_NAME_DEFAULT)) &&
                 Objects.equals(jupyterPythonExecutable.getText(), propertiesComponent.getValue(JUPYTER_PYTHON_EXECUTABLE, JUPYTER_PYTHON_EXECUTABLE_DEFAULT)) &&
                 Objects.equals(jupyterExtraClasspath.getText(), propertiesComponent.getValue(JUPYTER_EXTRA_CLASSPATH, JUPYTER_EXTRA_CLASSPATH_DEFAULT)) &&
@@ -181,6 +230,11 @@ public class IdeaPluginSettingsDialog implements Configurable {
         propertiesComponent.setValue(DATA_SERVER_UPLOAD_THREADS, threadsField.getText());
         propertiesComponent.setValue(AGENT_SERVER_LISTEN_ADDRESS, agentServerListenAddress.getText());
         propertiesComponent.setValue(AGENT_SERVER_LISTEN_PORT, agentServerListenPort.getText());
+        propertiesComponent.setValue(PYTHON312_EXECUTABLE, python312Executable.getText());
+        propertiesComponent.setValue(PYTHON_VENV_PATH, pythonVenvPath.getText());
+        propertiesComponent.setValue(PYTHON_DOWNLOAD_URL, pythonDownloadUrl.getText());
+        propertiesComponent.setValue(PYTHON_PIP_PACKAGES, pythonPipPackages.getText());
+        propertiesComponent.setValue(PYTHON_PIP_MIRROR, pythonPipMirror.getText());
         propertiesComponent.setValue(JUPYTER_KERNEL_NAME, jupyterKernelName.getText());
         propertiesComponent.setValue(JUPYTER_PYTHON_EXECUTABLE, jupyterPythonExecutable.getText());
         propertiesComponent.setValue(JUPYTER_EXTRA_CLASSPATH, jupyterExtraClasspath.getText());

@@ -3,6 +3,7 @@ package cn.hylstudio.skykoma.plugin.idea.service.impl;
 import cn.hylstudio.skykoma.plugin.idea.KotlinReplWrapper;
 import cn.hylstudio.skykoma.plugin.idea.SkykomaConstants;
 import cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer;
+import cn.hylstudio.skykoma.plugin.idea.service.PythonEnvService;
 import cn.hylstudio.skykoma.plugin.idea.service.verticle.AgentHttpApiVerticle;
 import cn.hylstudio.skykoma.plugin.idea.util.GsonUtils;
 import cn.hylstudio.skykoma.plugin.idea.util.SkykomaNotifier;
@@ -140,8 +141,24 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
     @NotNull
     private static String getPythonExecutable() {
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
-        return propertiesComponent.getValue(SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE,
+        String configured = propertiesComponent.getValue(SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE,
                 SkykomaConstants.JUPYTER_PYTHON_EXECUTABLE_DEFAULT);
+        if (configured != null && !configured.isEmpty()) {
+            return configured;
+        }
+        String venvPath = propertiesComponent.getValue(SkykomaConstants.PYTHON_VENV_PATH,
+                SkykomaConstants.PYTHON_VENV_PATH_DEFAULT);
+        PythonEnvService pythonEnvService = com.intellij.openapi.application.ApplicationManager.getApplication()
+                .getService(PythonEnvService.class);
+        if (pythonEnvService != null && pythonEnvService.isVenvInitialized(venvPath)) {
+            String venvPython = pythonEnvService.getVenvPythonExecutable(venvPath);
+            LOGGER.info("Auto-using venv python: " + venvPython);
+            return venvPython;
+        }
+        String python312 = propertiesComponent.getValue(SkykomaConstants.PYTHON312_EXECUTABLE,
+                SkykomaConstants.PYTHON312_EXECUTABLE_DEFAULT);
+        LOGGER.warn("Venv not initialized, falling back to system python: " + python312);
+        return python312;
     }
 
     @Override
@@ -258,6 +275,11 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
     @Override
     public String queryJupyterKernelStatus(String payload) {
         return kernelStatus.get();
+    }
+
+    @Override
+    public boolean isAgentServerRunning() {
+        return agentHttpApiVerticle != null && agentHttpApiVerticle.isStarted();
     }
 
     @Override

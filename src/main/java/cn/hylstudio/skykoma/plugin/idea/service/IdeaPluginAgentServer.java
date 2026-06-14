@@ -18,4 +18,6 @@ public interface IdeaPluginAgentServer {
     void stopJupyterKernel();
 
     String queryJupyterKernelStatus(String payload);
+
+    boolean isAgentServerRunning();
 }

@@ -3,6 +3,7 @@ package cn.hylstudio.skykoma.plugin.idea;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.Set;
 
@@ -66,17 +67,21 @@ public class SkykomaConstants {
     public static final int JUPYTER_SERVER_IOPUB_PORT_DEFAULT = 2336;
     public static final int JUPYTER_SERVER_STDIN_PORT_DEFAULT = 2337;
     public static final int JUPYTER_SERVER_CONTROL_PORT_DEFAULT = 2338;
-    public static final String JUPYTER_PYTHON_EXECUTABLE = PLUGIN_CONFIG_PREFIX + "jupyter_python_executable";
-    public static final String JUPYTER_PYTHON_EXECUTABLE_DEFAULT;
+
+    public static final String PYTHON312_EXECUTABLE = PLUGIN_CONFIG_PREFIX + "python312_executable";
+    public static final String PYTHON312_EXECUTABLE_DEFAULT;
 
     static {
         String pythonFromEnv = System.getenv("SKYKOMA_JUPYTER_PYTHON_EXECUTABLE");
         if (StringUtils.isBlank(pythonFromEnv)) {
-            JUPYTER_PYTHON_EXECUTABLE_DEFAULT = "python";
+            PYTHON312_EXECUTABLE_DEFAULT = "python";
         } else {
-            JUPYTER_PYTHON_EXECUTABLE_DEFAULT = pythonFromEnv;
+            PYTHON312_EXECUTABLE_DEFAULT = pythonFromEnv;
         }
     }
+
+    public static final String JUPYTER_PYTHON_EXECUTABLE = PLUGIN_CONFIG_PREFIX + "jupyter_python_executable";
+    public static final String JUPYTER_PYTHON_EXECUTABLE_DEFAULT = "";
 
     public static final String JUPYTER_KERNEL_NAME = PLUGIN_CONFIG_PREFIX + "jupyter_kernel_name";
     public static final String JUPYTER_EXTRA_CLASSPATH = PLUGIN_CONFIG_PREFIX + "jupyter_extra_classpath";
@@ -88,5 +93,31 @@ public class SkykomaConstants {
     public static final Boolean GENERATE_CURRENT_METHOD_NAME_ENABLED_DEFAULT = true;
     public static final String GENERATE_LOG_VARIABLE_NAME = PLUGIN_CONFIG_PREFIX + "gen_log_variable_name";
     public static final String GENERATE_LOG_VARIABLE_NAME_DEFAULT = "LOGGER";
+
+    public static final String PYTHON_VENV_PATH = PLUGIN_CONFIG_PREFIX + "python_venv_path";
+    public static final String PYTHON_VENV_PATH_DEFAULT;
+
+    static {
+        String userHome = System.getProperty("user.home");
+        PYTHON_VENV_PATH_DEFAULT = userHome + File.separator + ".skykoma" + File.separator + "venv";
+    }
+
+    public static final String PYTHON_DOWNLOAD_URL = PLUGIN_CONFIG_PREFIX + "python_download_url";
+    public static final String PYTHON_DOWNLOAD_URL_DEFAULT = "https://www.python.org/downloads/release/python-3129/";
+
+    public static final String PYTHON_PIP_PACKAGES = PLUGIN_CONFIG_PREFIX + "python_pip_packages";
+    public static final String PYTHON_PIP_PACKAGES_DEFAULT = String.join("\n",
+            "jupyterlab==4.5.8",
+            "kotlin-jupyter-kernel==0.19.0.944",
+            "jupyterlab-lsp==5.3.0",
+            "jupyter-collaboration==4.4.1",
+            "jupyter-kernel-client==0.9.0",
+            "jupyter-nbmodel-client==0.14.8",
+            "git+https://github.com/956237586/run_kotlin_kernel_idea.git@v0.2",
+            "git+https://github.com/956237586/jupyter_client.git@v8.9.2"
+    );
+
+    public static final String PYTHON_PIP_MIRROR = PLUGIN_CONFIG_PREFIX + "python_pip_mirror";
+    public static final String PYTHON_PIP_MIRROR_DEFAULT = "https://pypi.tuna.tsinghua.edu.cn/simple";
 
 }
