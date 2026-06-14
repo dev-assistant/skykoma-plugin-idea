@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.error;
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.info;
@@ -59,27 +60,45 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
 
     @Override
     public void registerAsJupyterKernel() {
+        registerAsJupyterKernel(null);
+    }
+
+    @Override
+    public void registerAsJupyterKernel(Consumer<String> outputConsumer) {
         String pythonExecutable = getPythonExecutable();
         List<String> cmds = genRegisterKernelCmd(pythonExecutable);
-        info(LOGGER, String.format("registerAsJupyterKernel, cmdArr = [%s]", arrToString(cmds)));
+        String cmdStr = arrToString(cmds);
+        info(LOGGER, String.format("registerAsJupyterKernel, cmdArr = [%s]", cmdStr));
+        if (outputConsumer != null) {
+            outputConsumer.accept("$ " + cmdStr);
+        }
         try {
-            boolean registerSucc = registerCustomKernel(cmds);
+            boolean registerSucc = registerCustomKernel(cmds, outputConsumer);
         } catch (Exception e) {
             String registerError = String.format("registerAsJupyterKernel error, e = [%s]", e.getMessage());
             error(LOGGER, registerError, e);
             SkykomaNotifier.notifyError(registerError);
+            if (outputConsumer != null) {
+                outputConsumer.accept("[ERROR] " + registerError);
+            }
         }
         try {
             String kernelJsonPath = getKernelJsonPath();
             updateKernelJson(kernelJsonPath, pythonExecutable);
+            if (outputConsumer != null) {
+                outputConsumer.accept("[OK] kernel.json updated: " + kernelJsonPath);
+            }
         } catch (Exception e) {
             String registerError = String.format("updateKernelJson error, e = [%s]", e.getMessage());
             error(LOGGER, registerError, e);
             SkykomaNotifier.notifyError(registerError);
+            if (outputConsumer != null) {
+                outputConsumer.accept("[ERROR] " + registerError);
+            }
         }
     }
 
-    private static boolean registerCustomKernel(List<String> cmds) throws IOException, InterruptedException {
+    private static boolean registerCustomKernel(List<String> cmds, Consumer<String> outputConsumer) throws IOException, InterruptedException {
         boolean succ = false;
         String[] cmdArr = cmds.toArray(new String[]{});
         Process process = Runtime.getRuntime().exec(cmdArr);
@@ -90,13 +109,22 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
             if (exitValue == 0) {
                 succ = true;
                 SkykomaNotifier.notifyInfo("registerAsJupyterKernel succ");
+                if (outputConsumer != null) {
+                    outputConsumer.accept("[OK] registerAsJupyterKernel succ");
+                }
             } else {
                 String msg = String.format("registerAsJupyterKernel failed, exitValue = [%s], cmd = [%s]", exitValue, cmdStr);
                 info(LOGGER, msg);
                 SkykomaNotifier.notifyInfo(msg);
+                if (outputConsumer != null) {
+                    outputConsumer.accept("[FAIL] " + msg);
+                }
             }
         } else {
             info(LOGGER, String.format("registerAsJupyterKernel timeout, cmd = [%s]", cmdStr));
+            if (outputConsumer != null) {
+                outputConsumer.accept("[TIMEOUT] registerAsJupyterKernel timeout");
+            }
         }
         return succ;
     }

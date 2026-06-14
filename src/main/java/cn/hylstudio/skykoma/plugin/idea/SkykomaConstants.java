@@ -100,6 +100,7 @@ public class SkykomaConstants {
     static {
         String userHome = System.getProperty("user.home");
         PYTHON_VENV_PATH_DEFAULT = userHome + File.separator + ".skykoma" + File.separator + "venv";
+        JUPYTER_LAB_WORKDIR_DEFAULT = userHome + File.separator + ".skykoma" + File.separator + "notebooks";
     }
 
     public static final String PYTHON_DOWNLOAD_URL = PLUGIN_CONFIG_PREFIX + "python_download_url";
@@ -119,5 +120,15 @@ public class SkykomaConstants {
 
     public static final String PYTHON_PIP_MIRROR = PLUGIN_CONFIG_PREFIX + "python_pip_mirror";
     public static final String PYTHON_PIP_MIRROR_DEFAULT = "https://pypi.tuna.tsinghua.edu.cn/simple";
+
+    public static final String JUPYTER_LAB_IP = PLUGIN_CONFIG_PREFIX + "jupyter_lab_ip";
+    public static final String JUPYTER_LAB_IP_DEFAULT = "127.0.0.1";
+    public static final String JUPYTER_LAB_ALLOW_ROOT = PLUGIN_CONFIG_PREFIX + "jupyter_lab_allow_root";
+    public static final Boolean JUPYTER_LAB_ALLOW_ROOT_DEFAULT = true;
+    public static final String JUPYTER_LAB_TOKEN = PLUGIN_CONFIG_PREFIX + "jupyter_lab_token";
+    public static final String JUPYTER_LAB_TOKEN_DEFAULT = "";
+
+    public static final String JUPYTER_LAB_WORKDIR = PLUGIN_CONFIG_PREFIX + "jupyter_lab_workdir";
+    public static final String JUPYTER_LAB_WORKDIR_DEFAULT;
 
 }

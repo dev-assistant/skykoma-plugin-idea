@@ -3,6 +3,8 @@ package cn.hylstudio.skykoma.plugin.idea.toolwindow;
 import cn.hylstudio.skykoma.plugin.idea.SkykomaConstants;
 import cn.hylstudio.skykoma.plugin.idea.service.IdeaPluginAgentServer;
 import cn.hylstudio.skykoma.plugin.idea.service.PythonEnvService;
+import cn.hylstudio.skykoma.plugin.idea.service.SkykomaConsoleService;
+import cn.hylstudio.skykoma.plugin.idea.service.impl.SkykomaConsoleServiceImpl;
 import cn.hylstudio.skykoma.plugin.idea.util.ProjectUtils;
 import cn.hylstudio.skykoma.plugin.idea.util.SkykomaNotifier;
 import com.intellij.icons.AllIcons;
@@ -43,20 +45,19 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
 
+    private static final AtomicReference<Process> jupyterLabProcessRef = new AtomicReference<>();
+
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+
+        SkykomaConsoleServiceImpl consoleServiceImpl = (SkykomaConsoleServiceImpl) ApplicationManager.getApplication()
+                .getService(SkykomaConsoleService.class);
+        consoleServiceImpl.initConsole(project);
 
         JComponent rootComponent = createRootComponent(project);
         Content content = ContentFactory.getInstance().createContent(rootComponent, null, false);
         toolWindow.getContentManager().addContent(content);
     }
-
-    private final JButton btnStartAgentServer = new JButton("start");
-    private final JButton btnStopAgentServer = new JButton("stop");
-    private final JButton btnRestartAgentServer = new JButton("restart");
-    private final JButton btnRegisterKernel = new JButton("register");
-    private final JButton btnOpenKernelFolder = new JButton("openFolder");
-    private final JButton btnStopKernel = new JButton("stop");
 
     private static JComponent makeRefreshButton(Runnable action) {
         DefaultActionGroup group = new DefaultActionGroup();
@@ -101,6 +102,9 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
         vbox.add(agentServerStatusPanel);
 
         JPanel agentServerControlPanel = new JBPanel<>(new WrapLayout(FlowLayout.LEFT));
+        JButton btnStartAgentServer = new JButton("start");
+        JButton btnStopAgentServer = new JButton("stop");
+        JButton btnRestartAgentServer = new JButton("restart");
         agentServerControlPanel.add(btnStartAgentServer);
         agentServerControlPanel.add(btnStopAgentServer);
         agentServerControlPanel.add(btnRestartAgentServer);
@@ -157,7 +161,7 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
         pythonEnvPanel.add(venvStatusPanel);
 
         JPanel pythonEnvBtnPanel = new JBPanel<>(new WrapLayout(FlowLayout.LEFT));
-        JButton btnAutoDetectPython = new JButton("autoDetect Python 3.12");
+        JButton btnAutoDetectPython = new JButton("detectPython");
         JButton btnInitVenv = new JButton("initVenv");
         JButton btnUseVenvPython = new JButton("useVenvPython");
         pythonEnvBtnPanel.add(btnAutoDetectPython);
@@ -194,7 +198,10 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
                 }
                 String pipPackages = PropertiesComponent.getInstance().getValue(SkykomaConstants.PYTHON_PIP_PACKAGES, SkykomaConstants.PYTHON_PIP_PACKAGES_DEFAULT);
                 String pipMirror = PropertiesComponent.getInstance().getValue(SkykomaConstants.PYTHON_PIP_MIRROR, SkykomaConstants.PYTHON_PIP_MIRROR_DEFAULT);
-                String result = pythonEnvService.initVenv(venvPath, pythonExe, pipPackages, pipMirror);
+                SkykomaConsoleService cs = getConsoleService();
+                ApplicationManager.getApplication().invokeLater(() -> cs.clear());
+                String result = pythonEnvService.initVenv(venvPath, pythonExe, pipPackages, pipMirror,
+                        line -> ApplicationManager.getApplication().invokeLater(() -> cs.appendInfo(line)));
                 if (result != null) {
                     ApplicationManager.getApplication().invokeLater(() -> {
                         jupyterPythonPathSelectorRef.get().setText(result);
@@ -221,7 +228,7 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
         pythonEnvPanel.add(pythonEnvBtnPanel);
         vbox.add(pythonEnvPanel);
 
-        vbox.add(new TitledSeparator("Jupyter Kernel"));
+        vbox.add(new TitledSeparator("Jupyter"));
 
         JPanel jupyterPanel = new JPanel();
         jupyterPanel.setLayout(new BoxLayout(jupyterPanel, BoxLayout.Y_AXIS));
@@ -235,6 +242,16 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
         jupyterPythonPathPanel.add(jupyterPythonPathSelector, BorderLayout.CENTER);
         jupyterPanel.add(jupyterPythonPathPanel);
         jupyterPythonPathSelectorRef.set(jupyterPythonPathSelector);
+
+        JPanel notebookDirPanel = new JBPanel<>(new BorderLayout());
+        TextFieldWithBrowseButton notebookDirSelector = new TextFieldWithBrowseButton();
+        FileChooserDescriptor singleDirNotebook = new FileChooserDescriptor(false, true, false, false, false, false);
+        notebookDirSelector.addBrowseFolderListener(new TextBrowseFolderListener(singleDirNotebook.withTitle("Select Notebook Directory"), project));
+        String savedNotebookDir = PropertiesComponent.getInstance().getValue(SkykomaConstants.JUPYTER_LAB_WORKDIR, SkykomaConstants.JUPYTER_LAB_WORKDIR_DEFAULT);
+        notebookDirSelector.setText(savedNotebookDir);
+        notebookDirPanel.add(new JBLabel("Notebook Dir:"), BorderLayout.WEST);
+        notebookDirPanel.add(notebookDirSelector, BorderLayout.CENTER);
+        jupyterPanel.add(notebookDirPanel);
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             PythonEnvService pythonEnvService = getPythonEnvService();
@@ -262,14 +279,58 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
                 refreshStatusText(kernelStatus), 0, 1, TimeUnit.SECONDS);
 
         JPanel kernelBtnPanel = new JBPanel<>(new WrapLayout(FlowLayout.LEFT));
-        kernelBtnPanel.add(btnOpenKernelFolder);
+        JButton btnRegisterKernel = new JButton("registerKernel");
+        JButton btnOpenKernelFolder = new JButton("viewKernelJson");
+        JButton btnStopKernel = new JButton("stopKernelAndLab");
         kernelBtnPanel.add(btnRegisterKernel);
+        kernelBtnPanel.add(btnOpenKernelFolder);
         JButton btnShowCmd = new JButton("showCmd");
-        kernelBtnPanel.add(btnShowCmd);
+//        kernelBtnPanel.add(btnShowCmd);
+        JButton btnStartLab = new JButton("startLab");
+        kernelBtnPanel.add(btnStartLab);
         kernelBtnPanel.add(btnStopKernel);
         btnOpenKernelFolder.addActionListener(e -> RevealFileAction.openFile(new File(getIdeaPluginAgentServer().getKernelJsonPath())));
-        btnRegisterKernel.addActionListener(e -> getIdeaPluginAgentServer().registerAsJupyterKernel());
-        btnStopKernel.addActionListener(e -> getIdeaPluginAgentServer().stopJupyterKernel());
+        btnRegisterKernel.addActionListener(e -> {
+            SkykomaConsoleService cs = getConsoleService();
+            cs.clear();
+            getIdeaPluginAgentServer().registerAsJupyterKernel(cs::appendInfo);
+        });
+        btnStopKernel.addActionListener(e -> {
+            getIdeaPluginAgentServer().stopJupyterKernel();
+            Process labProcess = jupyterLabProcessRef.getAndSet(null);
+            if (labProcess != null && labProcess.isAlive()) {
+                getConsoleService().appendInfo("[OK] Jupyter Lab stopping...");
+                ApplicationManager.getApplication().executeOnPooledThread(() ->
+                        killProcessTree(labProcess, getConsoleService()));
+            }
+        });
+        btnStartLab.addActionListener(e -> {
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                SkykomaConsoleService cs = getConsoleService();
+                cs.clear();
+                Process existing = jupyterLabProcessRef.getAndSet(null);
+                if (existing != null && existing.isAlive()) {
+                    cs.appendInfo("[INFO] Stopping existing Jupyter Lab...");
+                    killProcessTree(existing, cs);
+                }
+                PythonEnvService pythonEnvService = getPythonEnvService();
+                String venvPath = venvPathSelector.getText();
+                if (!pythonEnvService.isVenvInitialized(venvPath)) {
+                    ApplicationManager.getApplication().invokeLater(() ->
+                            cs.appendError("[ERROR] Venv not initialized. Please initVenv first."));
+                    return;
+                }
+                String venvPython = pythonEnvService.getVenvPythonExecutable(venvPath);
+                PropertiesComponent pc = PropertiesComponent.getInstance();
+                String ip = pc.getValue(SkykomaConstants.JUPYTER_LAB_IP, SkykomaConstants.JUPYTER_LAB_IP_DEFAULT);
+                boolean allowRoot = pc.getBoolean(SkykomaConstants.JUPYTER_LAB_ALLOW_ROOT, SkykomaConstants.JUPYTER_LAB_ALLOW_ROOT_DEFAULT);
+                String token = pc.getValue(SkykomaConstants.JUPYTER_LAB_TOKEN, SkykomaConstants.JUPYTER_LAB_TOKEN_DEFAULT);
+                String workDir = notebookDirSelector.getText();
+                Process labProcess = pythonEnvService.startJupyterLab(venvPython, ip, allowRoot, token, workDir,
+                        line -> ApplicationManager.getApplication().invokeLater(() -> cs.appendInfo(line)));
+                jupyterLabProcessRef.set(labProcess);
+            });
+        });
         jupyterPanel.add(kernelBtnPanel);
 
         JPanel registerCmdPanel = new JBPanel<>(new BorderLayout());
@@ -368,9 +429,65 @@ public class SkykomaToolWindowFactory implements ToolWindowFactory, DumbAware {
         return ApplicationManager.getApplication().getService(PythonEnvService.class);
     }
 
+    private static SkykomaConsoleService getConsoleService() {
+        return ApplicationManager.getApplication().getService(SkykomaConsoleService.class);
+    }
+
     private static void refreshStatusText(JBLabel kernelStatus) {
         IdeaPluginAgentServer ideaPluginAgentServer = getIdeaPluginAgentServer();
         String stautsText = ideaPluginAgentServer.queryJupyterKernelStatus("");
         kernelStatus.setText(stautsText);
+    }
+
+    private static void killProcessTree(Process process, SkykomaConsoleService cs) {
+        if (process == null || !process.isAlive()) {
+            return;
+        }
+        long pid = process.pid();
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (osName.startsWith("windows")) {
+            try {
+                new ProcessBuilder("taskkill", "/T", "/F", "/PID", String.valueOf(pid))
+                        .redirectErrorStream(true)
+                        .start()
+                        .waitFor(10, TimeUnit.SECONDS);
+                if (cs != null) cs.appendInfo("[OK] Process tree killed (PID: " + pid + ")");
+            } catch (Exception ex) {
+                process.destroyForcibly();
+                killDescendants(pid);
+                if (cs != null) cs.appendInfo("[OK] Process force killed (PID: " + pid + ")");
+            }
+        } else {
+            killDescendants(pid);
+            process.destroy();
+            try {
+                if (!process.waitFor(10, TimeUnit.SECONDS)) {
+                    process.destroyForcibly();
+                    killDescendants(pid);
+                }
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                process.destroyForcibly();
+                killDescendants(pid);
+            }
+            if (cs != null) cs.appendInfo("[OK] Jupyter Lab process stopped");
+        }
+    }
+
+    private static void killDescendants(long pid) {
+        ProcessHandle.of(pid).ifPresent(ph ->
+                ph.descendants().forEach(child -> {
+                    child.destroyForcibly();
+                    child.descendants().forEach(grandchild -> grandchild.destroyForcibly());
+                }));
+    }
+
+    public static void shutdownKernelAndLab() {
+        IdeaPluginAgentServer server = ApplicationManager.getApplication().getService(IdeaPluginAgentServer.class);
+        server.stopJupyterKernel();
+        Process labProcess = jupyterLabProcessRef.getAndSet(null);
+        if (labProcess != null && labProcess.isAlive()) {
+            killProcessTree(labProcess, null);
+        }
     }
 }

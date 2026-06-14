@@ -1,5 +1,7 @@
 package cn.hylstudio.skykoma.plugin.idea.service;
 
+import java.util.function.Consumer;
+
 public interface IdeaPluginAgentServer {
     void start();
 
@@ -8,6 +10,8 @@ public interface IdeaPluginAgentServer {
     void restart();
 
     void registerAsJupyterKernel();
+
+    void registerAsJupyterKernel(Consumer<String> outputConsumer);
 
     String getKernelJsonPath();
 

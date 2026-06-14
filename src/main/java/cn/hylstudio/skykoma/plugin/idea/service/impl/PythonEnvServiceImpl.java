@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class PythonEnvServiceImpl implements PythonEnvService {
     private static final Logger LOGGER = Logger.getInstance(PythonEnvServiceImpl.class);
@@ -86,50 +87,96 @@ public class PythonEnvServiceImpl implements PythonEnvService {
     }
 
     @Override
-    public String initVenv(String venvPath, String pythonExecutable, String pipPackages, String pipMirror) {
+    public String initVenv(String venvPath, String pythonExecutable, String pipPackages, String pipMirror, Consumer<String> outputConsumer) {
         try {
             Path venvDir = Paths.get(venvPath);
             if (!Files.exists(venvDir)) {
                 Files.createDirectories(venvDir);
             }
 
-            SkykomaNotifier.notifyInfo("Creating virtualenv at " + venvPath + " ...");
+            String msg = "Creating virtualenv at " + venvPath + " ...";
+            SkykomaNotifier.notifyInfo(msg);
+            if (outputConsumer != null) outputConsumer.accept(msg);
 
-            ProcessBuilder pb = new ProcessBuilder(pythonExecutable, "-m", "venv", venvPath);
-            pb.redirectErrorStream(true);
-            Process p = pb.start();
-            boolean finished = p.waitFor(120, TimeUnit.SECONDS);
-            if (!finished) {
-                p.destroyForcibly();
-                String msg = "venv creation timed out";
-                LOGGER.error(msg);
-                SkykomaNotifier.notifyError(msg);
-                return null;
+            boolean venvOk = runVenvCreation(pythonExecutable, venvPath, outputConsumer);
+            if (!venvOk) {
+                if (outputConsumer != null) outputConsumer.accept("[INFO] venv failed, trying virtualenv...");
+                installVirtualenv(pythonExecutable, outputConsumer);
+                venvOk = runVirtualenvCreation(pythonExecutable, venvPath, outputConsumer);
             }
-            if (p.exitValue() != 0) {
-                String output = new String(p.getInputStream().readAllBytes());
-                String msg = "venv creation failed: " + output;
-                LOGGER.error(msg);
-                SkykomaNotifier.notifyError(msg);
+            if (!venvOk) {
+                String err = "venv creation failed";
+                LOGGER.error(err);
+                SkykomaNotifier.notifyError(err);
+                if (outputConsumer != null) outputConsumer.accept("[ERROR] " + err);
                 return null;
             }
 
             LOGGER.info("Virtualenv created successfully at " + venvPath);
+            if (outputConsumer != null) outputConsumer.accept("[OK] Virtualenv created");
 
             String venvPython = getVenvPythonExecutable(venvPath);
-            installPipPackages(venvPython, pipPackages, pipMirror);
+            installPipPackages(venvPython, pipPackages, pipMirror, outputConsumer);
 
-            SkykomaNotifier.notifyInfo("Python venv initialized successfully at " + venvPath);
+            String done = "Python venv initialized successfully at " + venvPath;
+            SkykomaNotifier.notifyInfo(done);
+            if (outputConsumer != null) outputConsumer.accept("[OK] " + done);
             return venvPython;
         } catch (Exception e) {
-            String msg = "initVenv error: " + e.getMessage();
-            LOGGER.error(msg, e);
-            SkykomaNotifier.notifyError(msg);
+            String err = "initVenv error: " + e.getMessage();
+            LOGGER.error(err, e);
+            SkykomaNotifier.notifyError(err);
+            if (outputConsumer != null) outputConsumer.accept("[ERROR] " + err);
             return null;
         }
     }
 
-    private void installPipPackages(String venvPython, String pipPackages, String pipMirror) throws IOException, InterruptedException {
+    private boolean runVenvCreation(String pythonExecutable, String venvPath, Consumer<String> outputConsumer) throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder(pythonExecutable, "-m", "venv", venvPath);
+        pb.redirectErrorStream(true);
+        if (outputConsumer != null) {
+            outputConsumer.accept("$ " + String.join(" ", pb.command()));
+        }
+        return runProcess(pb, 120, outputConsumer);
+    }
+
+    private void installVirtualenv(String pythonExecutable, Consumer<String> outputConsumer) throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder(pythonExecutable, "-m", "pip", "install", "virtualenv");
+        pb.redirectErrorStream(true);
+        if (outputConsumer != null) {
+            outputConsumer.accept("$ " + String.join(" ", pb.command()));
+        }
+        runProcess(pb, 60, outputConsumer);
+    }
+
+    private boolean runVirtualenvCreation(String pythonExecutable, String venvPath, Consumer<String> outputConsumer) throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder(pythonExecutable, "-m", "virtualenv", venvPath);
+        pb.redirectErrorStream(true);
+        if (outputConsumer != null) {
+            outputConsumer.accept("$ " + String.join(" ", pb.command()));
+        }
+        return runProcess(pb, 120, outputConsumer);
+    }
+
+    private boolean runProcess(ProcessBuilder pb, int timeoutSeconds, Consumer<String> outputConsumer) throws IOException, InterruptedException {
+        Process p = pb.start();
+        if (outputConsumer != null) {
+            readProcessOutput(p, outputConsumer);
+        }
+        boolean finished = p.waitFor(timeoutSeconds, TimeUnit.SECONDS);
+        if (!finished) {
+            p.destroyForcibly();
+            if (outputConsumer != null) outputConsumer.accept("[ERROR] Process timed out");
+            return false;
+        }
+        if (p.exitValue() != 0) {
+            if (outputConsumer != null) outputConsumer.accept("[FAIL] Exit code: " + p.exitValue());
+            return false;
+        }
+        return true;
+    }
+
+    private void installPipPackages(String venvPython, String pipPackages, String pipMirror, Consumer<String> outputConsumer) throws IOException, InterruptedException {
         if (pipPackages == null || pipPackages.trim().isEmpty()) {
             LOGGER.info("No pip packages configured, skipping install");
             return;
@@ -145,7 +192,9 @@ public class PythonEnvServiceImpl implements PythonEnvService {
             return;
         }
 
-        SkykomaNotifier.notifyInfo("Installing pip packages...");
+        String msg = "Installing pip packages...";
+        SkykomaNotifier.notifyInfo(msg);
+        if (outputConsumer != null) outputConsumer.accept(msg);
 
         List<String> cmd = new ArrayList<>();
         cmd.add(venvPython);
@@ -158,16 +207,24 @@ public class PythonEnvServiceImpl implements PythonEnvService {
         }
         cmd.addAll(packages);
 
+        if (outputConsumer != null) {
+            outputConsumer.accept("$ " + String.join(" ", cmd));
+        }
+
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         Process p = pb.start();
 
-        StringBuilder output = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-                LOGGER.info("[pip] " + line);
+        if (outputConsumer != null) {
+            readProcessOutput(p, outputConsumer);
+        } else {
+            StringBuilder output = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                    LOGGER.info("[pip] " + line);
+                }
             }
         }
 
@@ -176,15 +233,71 @@ public class PythonEnvServiceImpl implements PythonEnvService {
             p.destroyForcibly();
             LOGGER.error("pip install timed out");
             SkykomaNotifier.notifyError("pip install timed out");
+            if (outputConsumer != null) outputConsumer.accept("[ERROR] pip install timed out");
             return;
         }
 
         if (p.exitValue() != 0) {
-            LOGGER.error("pip install failed: " + output);
+            LOGGER.error("pip install failed");
             SkykomaNotifier.notifyError("pip install failed, check log for details");
+            if (outputConsumer != null) outputConsumer.accept("[FAIL] pip install failed");
         } else {
             LOGGER.info("pip packages installed successfully");
             SkykomaNotifier.notifyInfo("pip packages installed successfully");
+            if (outputConsumer != null) outputConsumer.accept("[OK] pip packages installed");
+        }
+    }
+
+    private void readProcessOutput(Process p, Consumer<String> outputConsumer) {
+        new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    outputConsumer.accept(line);
+                }
+            } catch (IOException ignored) {
+            }
+        }).start();
+    }
+
+    @Override
+    public Process startJupyterLab(String venvPython, String ip, boolean allowRoot, String token, String workDir, Consumer<String> outputConsumer) {
+        try {
+            List<String> cmd = new ArrayList<>();
+            cmd.add(venvPython);
+            cmd.add("-m");
+            cmd.add("jupyter");
+            cmd.add("lab");
+            cmd.add("--ip=" + ip);
+            if (allowRoot) {
+                cmd.add("--allow-root");
+            }
+            if (token != null && !token.isEmpty()) {
+                cmd.add("--IdentityProvider.token=" + token);
+            }
+
+            String cmdStr = "$ " + String.join(" ", cmd);
+            outputConsumer.accept(cmdStr);
+
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            pb.redirectErrorStream(true);
+            if (workDir != null && !workDir.isEmpty()) {
+                File dir = new File(workDir);
+                if (!dir.exists()) {
+                    dir.mkdirs();
+                }
+                pb.directory(dir);
+                outputConsumer.accept("[OK] Working directory: " + dir.getAbsolutePath());
+            }
+            Process p = pb.start();
+
+            readProcessOutput(p, outputConsumer);
+            return p;
+        } catch (IOException e) {
+            String err = "startJupyterLab error: " + e.getMessage();
+            LOGGER.error(err, e);
+            outputConsumer.accept("[ERROR] " + err);
+            return null;
         }
     }
 

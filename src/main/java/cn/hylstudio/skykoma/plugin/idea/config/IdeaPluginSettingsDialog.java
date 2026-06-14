@@ -43,6 +43,10 @@ public class IdeaPluginSettingsDialog implements Configurable {
     private JTextField pythonDownloadUrl;
     private JTextArea pythonPipPackages;
     private JTextField pythonPipMirror;
+    private JTextField jupyterLabIp;
+    private JCheckBox jupyterLabAllowRoot;
+    private JTextField jupyterLabToken;
+    private JTextField jupyterLabWorkdir;
 
     @Nls
     @Override
@@ -119,7 +123,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
         mainVBox.add(pythonEnvPanel);
         mainVBox.add(Box.createVerticalStrut(5));
 
-        mainVBox.add(new TitledSeparator("Jupyter Kernel"));
+        mainVBox.add(new TitledSeparator("Jupyter"));
         JPanel jupyterPanel = new JPanel();
         jupyterPanel.setLayout(new BoxLayout(jupyterPanel, BoxLayout.Y_AXIS));
 
@@ -148,7 +152,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
         appendField(jupyterPanel, "Pip Mirror:", pythonPipMirror);
 
         JPanel pipResetPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton btnResetPipPackages = new JButton("Reset to Default");
+        JButton btnResetPipPackages = new JButton("Reset Pip to Default");
         btnResetPipPackages.addActionListener(e -> {
             pythonPipPackages.setText(PYTHON_PIP_PACKAGES_DEFAULT);
             pythonPipMirror.setText(PYTHON_PIP_MIRROR_DEFAULT);
@@ -158,7 +162,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
 
         jupyterExtraClasspath = new JBTextField();
         jupyterExtraClasspath.setText(propertiesComponent.getValue(JUPYTER_EXTRA_CLASSPATH, JUPYTER_EXTRA_CLASSPATH_DEFAULT));
-        appendField(jupyterPanel, "Extra Classpath:", jupyterExtraClasspath);
+        appendField(jupyterPanel, "Kernel Extra Classpath:", jupyterExtraClasspath);
 
         jupyterKernelHbPort = new JBTextField();
         jupyterKernelHbPort.setText(String.valueOf(propertiesComponent.getInt(JUPYTER_SERVER_HB_PORT, JUPYTER_SERVER_HB_PORT_DEFAULT)));
@@ -181,6 +185,31 @@ public class IdeaPluginSettingsDialog implements Configurable {
         appendField(jupyterPanel, "Control Port:", jupyterKernelControlPort);
 
         mainVBox.add(jupyterPanel);
+        mainVBox.add(Box.createVerticalStrut(5));
+
+        mainVBox.add(new TitledSeparator("Jupyter Lab"));
+        JPanel jupyterLabPanel = new JPanel();
+        jupyterLabPanel.setLayout(new BoxLayout(jupyterLabPanel, BoxLayout.Y_AXIS));
+
+        jupyterLabIp = new JBTextField();
+        jupyterLabIp.setText(propertiesComponent.getValue(JUPYTER_LAB_IP, JUPYTER_LAB_IP_DEFAULT));
+        appendField(jupyterLabPanel, "Listen IP:", jupyterLabIp);
+
+        jupyterLabAllowRoot = new JCheckBox("Allow Root");
+        jupyterLabAllowRoot.setSelected(propertiesComponent.getBoolean(JUPYTER_LAB_ALLOW_ROOT, JUPYTER_LAB_ALLOW_ROOT_DEFAULT));
+        JPanel allowRootPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        allowRootPanel.add(jupyterLabAllowRoot);
+        jupyterLabPanel.add(allowRootPanel);
+
+        jupyterLabToken = new JBTextField();
+        jupyterLabToken.setText(propertiesComponent.getValue(JUPYTER_LAB_TOKEN, JUPYTER_LAB_TOKEN_DEFAULT));
+        appendField(jupyterLabPanel, "Token:", jupyterLabToken);
+
+        jupyterLabWorkdir = new JBTextField();
+        jupyterLabWorkdir.setText(propertiesComponent.getValue(JUPYTER_LAB_WORKDIR, JUPYTER_LAB_WORKDIR_DEFAULT));
+        appendField(jupyterLabPanel, "Work Dir:", jupyterLabWorkdir);
+
+        mainVBox.add(jupyterLabPanel);
         mainVBox.add(Box.createVerticalStrut(5));
 
         JBScrollPane scrollPane = new JBScrollPane(mainPanel);
@@ -218,7 +247,11 @@ public class IdeaPluginSettingsDialog implements Configurable {
                 Objects.equals(jupyterKernelShellPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_SHELL_PORT, JUPYTER_SERVER_SHELL_PORT_DEFAULT + "")) &&
                 Objects.equals(jupyterKernelIopubPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_IOPUB_PORT, JUPYTER_SERVER_IOPUB_PORT_DEFAULT + "")) &&
                 Objects.equals(jupyterKernelStdinPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_STDIN_PORT, JUPYTER_SERVER_STDIN_PORT_DEFAULT + "")) &&
-                Objects.equals(jupyterKernelControlPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_CONTROL_PORT, JUPYTER_SERVER_CONTROL_PORT_DEFAULT + ""))
+                Objects.equals(jupyterKernelControlPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_CONTROL_PORT, JUPYTER_SERVER_CONTROL_PORT_DEFAULT + "")) &&
+                Objects.equals(jupyterLabIp.getText(), propertiesComponent.getValue(JUPYTER_LAB_IP, JUPYTER_LAB_IP_DEFAULT)) &&
+                Objects.equals(jupyterLabAllowRoot.isSelected(), propertiesComponent.getBoolean(JUPYTER_LAB_ALLOW_ROOT, JUPYTER_LAB_ALLOW_ROOT_DEFAULT)) &&
+                Objects.equals(jupyterLabToken.getText(), propertiesComponent.getValue(JUPYTER_LAB_TOKEN, JUPYTER_LAB_TOKEN_DEFAULT)) &&
+                Objects.equals(jupyterLabWorkdir.getText(), propertiesComponent.getValue(JUPYTER_LAB_WORKDIR, JUPYTER_LAB_WORKDIR_DEFAULT))
         );
     }
 
@@ -243,5 +276,9 @@ public class IdeaPluginSettingsDialog implements Configurable {
         propertiesComponent.setValue(JUPYTER_SERVER_IOPUB_PORT, jupyterKernelIopubPort.getText());
         propertiesComponent.setValue(JUPYTER_SERVER_STDIN_PORT, jupyterKernelStdinPort.getText());
         propertiesComponent.setValue(JUPYTER_SERVER_CONTROL_PORT, jupyterKernelControlPort.getText());
+        propertiesComponent.setValue(JUPYTER_LAB_IP, jupyterLabIp.getText());
+        propertiesComponent.setValue(JUPYTER_LAB_ALLOW_ROOT, jupyterLabAllowRoot.isSelected());
+        propertiesComponent.setValue(JUPYTER_LAB_TOKEN, jupyterLabToken.getText());
+        propertiesComponent.setValue(JUPYTER_LAB_WORKDIR, jupyterLabWorkdir.getText());
     }
 }
