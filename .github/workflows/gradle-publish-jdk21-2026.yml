@@ -30,11 +30,12 @@ jobs:
         distribution: 'temurin'
         server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
         settings-path: ${{ github.workspace }} # location for the settings.xml file
-    - name: Build with Gradle
+    - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v6
       with:
         gradle-version: '9.5.1'
-        arguments: buildPlugin -PprojVersion=${{steps.get_version.outputs.VERSION}}
+    - name: Build with Gradle
+      run: gradle buildPlugin -PprojVersion=${{steps.get_version.outputs.VERSION}}
 #        arguments: buildPlugin publishPlugin -PprojVersion=${{steps.get_version.outputs.VERSION}} -PpublishToken={{secrets.IDEA_PUBLISH_TOKEN}}
     - name: Create Release
       uses: softprops/action-gh-release@v1
