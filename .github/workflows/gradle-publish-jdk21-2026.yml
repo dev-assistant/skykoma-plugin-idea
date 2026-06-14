@@ -35,7 +35,9 @@ jobs:
       with:
         gradle-version: '9.5.1'
     - name: Build with Gradle
-      run: gradle buildPlugin -PprojVersion=${{steps.get_version.outputs.VERSION}}
+      run: |
+        gradle --stop
+        gradle buildPlugin -PprojVersion=${{steps.get_version.outputs.VERSION}} --no-daemon
 #        arguments: buildPlugin publishPlugin -PprojVersion=${{steps.get_version.outputs.VERSION}} -PpublishToken={{secrets.IDEA_PUBLISH_TOKEN}}
     - name: Create Release
       uses: softprops/action-gh-release@v1
