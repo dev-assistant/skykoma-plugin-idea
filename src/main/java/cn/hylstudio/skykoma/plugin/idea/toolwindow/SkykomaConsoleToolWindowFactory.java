@@ -29,10 +29,10 @@ public class SkykomaConsoleToolWindowFactory implements ToolWindowFactory, DumbA
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         SkykomaConsoleServiceImpl consoleService = (SkykomaConsoleServiceImpl) ApplicationManager.getApplication()
                 .getService(SkykomaConsoleService.class);
-        ConsoleView consoleView = consoleService.initConsole(project);
 
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(consoleView.getComponent(), BorderLayout.CENTER);
+        ConsoleView consoleView = consoleService.initConsole(project);
+        JPanel consolePanel = new JPanel(new BorderLayout());
+        consolePanel.add(consoleView.getComponent(), BorderLayout.CENTER);
 
         ApplicationManager.getApplication().invokeLater(() -> {
             DefaultActionGroup toolbarGroup = new DefaultActionGroup();
@@ -43,11 +43,31 @@ public class SkykomaConsoleToolWindowFactory implements ToolWindowFactory, DumbA
 
             ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("skykoma-console", toolbarGroup, false);
             toolbar.setTargetComponent(consoleView.getComponent());
-            panel.add(toolbar.getComponent(), BorderLayout.WEST);
-            panel.revalidate();
+            consolePanel.add(toolbar.getComponent(), BorderLayout.WEST);
+            consolePanel.revalidate();
         });
 
-        Content content = ContentFactory.getInstance().createContent(panel, null, false);
-        toolWindow.getContentManager().addContent(content);
+        Content consoleContent = ContentFactory.getInstance().createContent(consolePanel, "Console", false);
+        toolWindow.getContentManager().addContent(consoleContent);
+
+        ConsoleView labConsoleView = consoleService.initLabConsole(project);
+        JPanel labPanel = new JPanel(new BorderLayout());
+        labPanel.add(labConsoleView.getComponent(), BorderLayout.CENTER);
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            DefaultActionGroup labToolbarGroup = new DefaultActionGroup();
+            AnAction[] labActions = labConsoleView.createConsoleActions();
+            if (labActions.length > IDX_WORD_WRAP) labToolbarGroup.add(labActions[IDX_WORD_WRAP]);
+            if (labActions.length > IDX_SCROLL_TO_END) labToolbarGroup.add(labActions[IDX_SCROLL_TO_END]);
+            if (labActions.length > IDX_CLEAR) labToolbarGroup.add(labActions[IDX_CLEAR]);
+
+            ActionToolbar labToolbar = ActionManager.getInstance().createActionToolbar("skykoma-lab-console", labToolbarGroup, false);
+            labToolbar.setTargetComponent(labConsoleView.getComponent());
+            labPanel.add(labToolbar.getComponent(), BorderLayout.WEST);
+            labPanel.revalidate();
+        });
+
+        Content labContent = ContentFactory.getInstance().createContent(labPanel, "Jupyter Lab", false);
+        toolWindow.getContentManager().addContent(labContent);
     }
 }
