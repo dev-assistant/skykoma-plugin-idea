@@ -17,6 +17,8 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 
 
+import java.util.List;
+
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.error;
 import static cn.hylstudio.skykoma.plugin.idea.util.LogUtils.info;
 
@@ -51,6 +53,7 @@ public class AgentHttpApiVerticle extends AbstractVerticle {
         router.route(HttpMethod.POST, "/startJupyterKernel").handler(this::startJupyterKernel);
         router.route(HttpMethod.POST, "/stopJupyterKernel").handler(this::stopJupyterKernel);
         router.route(HttpMethod.POST, "/queryJupyterKernelStatus").handler(this::queryJupyterKernelStatus);
+        router.route(HttpMethod.GET, "/getScriptClasspath").handler(this::getScriptClasspath);
         // Create the HTTP server
         vertx.createHttpServer()
                 // Handle every request using the router
@@ -96,6 +99,14 @@ public class AgentHttpApiVerticle extends AbstractVerticle {
                 ApplicationManager.getApplication().getService(IdeaPluginAgentServer.class);
         String result = ideaPluginAgentServer.queryJupyterKernelStatus(payload);
         JsonResult<Object> jsonResult = JsonResult.succResult("queryJupyterKernelStatusSucc", result);
+        responseJson(routingContext, jsonResult);
+    }
+
+    private void getScriptClasspath(RoutingContext routingContext) {
+        IdeaPluginAgentServer ideaPluginAgentServer =
+                ApplicationManager.getApplication().getService(IdeaPluginAgentServer.class);
+        List<String> classpath = ideaPluginAgentServer.getScriptClasspath();
+        JsonResult<Object> jsonResult = JsonResult.succResult("getScriptClasspathSucc", classpath);
         responseJson(routingContext, jsonResult);
     }
 

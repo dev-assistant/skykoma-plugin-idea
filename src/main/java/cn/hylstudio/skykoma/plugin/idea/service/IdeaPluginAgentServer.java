@@ -1,5 +1,6 @@
 package cn.hylstudio.skykoma.plugin.idea.service;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 public interface IdeaPluginAgentServer {
@@ -24,4 +25,12 @@ public interface IdeaPluginAgentServer {
     String queryJupyterKernelStatus(String payload);
 
     boolean isAgentServerRunning();
+
+    List<String> getScriptClasspath();
+
+    List<String> getSystemClasspath();
+
+    List<String> getPluginClasspath();
+
+    List<String> getExtraClasspath();
 }

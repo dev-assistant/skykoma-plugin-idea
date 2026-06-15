@@ -50,6 +50,22 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
     private val log = LoggerFactory.getLogger(this.javaClass)
     val iKotlinClass: Class<*> = object {}::class.java.enclosingClass
 
+    @Volatile
+    var scriptClassPath: List<File> = emptyList()
+        private set
+
+    @Volatile
+    var systemClassPath: List<File> = emptyList()
+        private set
+
+    @Volatile
+    var pluginClassPath: List<File> = emptyList()
+        private set
+
+    @Volatile
+    var extraClassPath: List<File> = emptyList()
+        private set
+
     companion object {
         private var instance: KotlinReplWrapper? = null
 
@@ -91,7 +107,7 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
             val kernelArgs = parseCommandLine(*args)
             val processCp =
                 System.getProperty("java.class.path").split(File.pathSeparator).toTypedArray().map { File(it) }
-            val systemClassPath = getSystemClassPath() ?: emptyList()
+            val systemClassPath = getSystemClassLoaderClassPath() ?: emptyList()
             val ideaCp1 =
                 scriptCompilationClasspathFromContextOrStdlib(wholeClasspath = true, classLoader = pluginClassLoader)
             log.info("ideaCp1: " + ideaCp1.joinToString())
@@ -111,6 +127,10 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
                 .map { File(it.trim()) }
             val cp = systemClassPath + ideaCp1 + ideaCp2 + extraClasspath
             val scriptClassPath = cp.distinct()
+            this.scriptClassPath = scriptClassPath
+            this.systemClassPath = systemClassPath
+            this.pluginClassPath = ideaCp1 + ideaCp2
+            this.extraClassPath = extraClasspath
             val kernelOwnParams =
                 KotlinKernelOwnParams(
                     scriptClasspath = scriptClassPath,
@@ -270,7 +290,7 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
     }
 
 
-    fun getSystemClassPath(): List<File>? {
+    fun getSystemClassLoaderClassPath(): List<File>? {
         val systemClassLoader = ClassLoader.getSystemClassLoader()
 
         val cp = classpathFromClassloader(systemClassLoader)

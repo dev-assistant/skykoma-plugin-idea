@@ -311,6 +311,53 @@ public class IdeaPluginAgentServerImpl implements IdeaPluginAgentServer {
     }
 
     @Override
+    public List<String> getScriptClasspath() {
+        KotlinReplWrapper wrapper = getWrapper();
+        if (wrapper == null) return Collections.emptyList();
+        return filesToStrings(wrapper.getScriptClassPath());
+    }
+
+    @Override
+    public List<String> getSystemClasspath() {
+        KotlinReplWrapper wrapper = getWrapper();
+        if (wrapper == null) return Collections.emptyList();
+        return filesToStrings(wrapper.getSystemClassPath());
+    }
+
+    @Override
+    public List<String> getPluginClasspath() {
+        KotlinReplWrapper wrapper = getWrapper();
+        if (wrapper == null) return Collections.emptyList();
+        return filesToStrings(wrapper.getPluginClassPath());
+    }
+
+    @Override
+    public List<String> getExtraClasspath() {
+        KotlinReplWrapper wrapper = getWrapper();
+        if (wrapper == null) return Collections.emptyList();
+        return filesToStrings(wrapper.getExtraClassPath());
+    }
+
+    private KotlinReplWrapper getWrapper() {
+        IdeaPluginDescriptor ideaPluginDescriptor = Arrays.stream(PluginManagerCore.getPlugins())
+                .filter(v -> v.getPluginId().getIdString().equals(SkykomaConstants.PLUGIN_ID))
+                .findFirst().orElse(null);
+        if (ideaPluginDescriptor == null) return null;
+        ClassLoader pluginClassLoader = ideaPluginDescriptor.getPluginClassLoader();
+        if (pluginClassLoader == null) return null;
+        return KotlinReplWrapper.getInstance(pluginClassLoader);
+    }
+
+    private static List<String> filesToStrings(List<File> files) {
+        if (files == null || files.isEmpty()) return Collections.emptyList();
+        List<String> result = new ArrayList<>();
+        for (File file : files) {
+            result.add(file.getAbsolutePath());
+        }
+        return result;
+    }
+
+    @Override
     public synchronized void startJupyterKernel(String payload) {
         if (!kernelStatus.compareAndSet("STOPPED", "STARTING")) {
             LOGGER.info("startJupyterKernel skipped, current status = " + kernelStatus.get());
