@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13">
+  <!-- 深蓝圆角底 -->
+  <rect width="13" height="13" rx="2.5" fill="#0F2744"/>
+  <!-- 终端光标 > -->
+  <path d="M3.5,4 L6,6.5 L3.5,9" fill="none" stroke="#00D4FF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 终端下划线 _ -->
+  <line x1="7" y1="9" x2="10" y2="9" stroke="#00D4FF" stroke-width="1.2" stroke-linecap="round"/>
+</svg>

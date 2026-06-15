@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13">
+  <!-- 深蓝圆角底 -->
+  <rect width="13" height="13" rx="2.5" fill="#0F2744"/>
+  <!-- 链路节点 1 -->
+  <circle cx="3" cy="6.5" r="1.2" fill="#00D4FF"/>
+  <!-- 链路节点 2 -->
+  <circle cx="6.5" cy="6.5" r="1.2" fill="#00D4FF"/>
+  <!-- 链路节点 3 -->
+  <circle cx="10" cy="6.5" r="1.2" fill="#00D4FF"/>
+  <!-- 连接线 -->
+  <line x1="4.2" y1="6.5" x2="5.3" y2="6.5" stroke="#00D4FF" stroke-width="0.8" opacity="0.7"/>
+  <line x1="7.7" y1="6.5" x2="8.8" y2="6.5" stroke="#00D4FF" stroke-width="0.8" opacity="0.7"/>
+</svg>

@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="12" height="12">
-<path d="M0 0 C3.96 0 7.92 0 12 0 C12 3.96 12 7.92 12 12 C8.04 12 4.08 12 0 12 C0 8.04 0 4.08 0 0 Z " fill="#365184" transform="translate(0,0)"/>
-<path d="M0 0 C0.66 0 1.32 0 2 0 C4 3 4 3 4 8 C0.04 8 -3.92 8 -8 8 C-8 7.01 -8 6.02 -8 5 C-7.01 5 -6.02 5 -5 5 C-4.67 3.68 -4.34 2.36 -4 1 C-3.67 1.99 -3.34 2.98 -3 4 C-1.68 4 -0.36 4 1 4 C0.67 2.68 0.34 1.36 0 0 Z " fill="#6493C9" transform="translate(8,4)"/>
-<path d="M0 0 C2.97 0 5.94 0 9 0 C9 2.31 9 4.62 9 7 C8.34 6.67 7.68 6.34 7 6 C7 5.34 7 4.68 7 4 C6.030625 3.71125 5.06125 3.4225 4.0625 3.125 C1 2 1 2 0 0 Z " fill="#2B4278" transform="translate(3,0)"/>
-<path d="M0 0 C1.32 0.33 2.64 0.66 4 1 C4.33 2.65 4.66 4.3 5 6 C3.0625 6.5625 3.0625 6.5625 1 7 C0 6 0 6 -0.0625 2.9375 C-0.041875 1.968125 -0.02125 0.99875 0 0 Z " fill="#486EA7" transform="translate(4,2)"/>
-<path d="M0 0 C2 3 2 3 2 5 C2.99 5.33 3.98 5.66 5 6 C2.36 6 -0.28 6 -3 6 C-3 5.34 -3 4.68 -3 4 C-2.01 4 -1.02 4 0 4 C0 2.68 0 1.36 0 0 Z " fill="#5E8DC0" transform="translate(3,5)"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13">
+  <!-- 深蓝圆角底 -->
+  <rect width="13" height="13" rx="2.5" fill="#0F2744"/>
+  <!-- 外环 -->
+  <circle cx="6.5" cy="6.5" r="4" fill="none" stroke="#00D4FF" stroke-width="0.8" opacity="0.75"/>
+  <!-- 内环 -->
+  <circle cx="6.5" cy="6.5" r="2" fill="none" stroke="#00D4FF" stroke-width="0.6" opacity="0.5"/>
+  <!-- 扫描线 -->
+  <line x1="6.5" y1="6.5" x2="10.5" y2="2.5" stroke="#00D4FF" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- 中心核 -->
+  <circle cx="6.5" cy="6.5" r="0.9" fill="#00D4FF"/>
+  <!-- 扫描端点辉光 -->
+  <circle cx="10.5" cy="2.5" r="0.5" fill="#80E8FF"/>
 </svg>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13">
+  <!-- 深蓝圆角底 -->
+  <rect width="13" height="13" rx="2.5" fill="#0F2744"/>
+  <!-- 档案盒主体（正面，绝对居中） -->
+  <rect x="2.5" y="3.5" width="8" height="7" rx="1" fill="#16304F" stroke="#00D4FF" stroke-width="0.6"/>
+  <!-- 档案盒顶盖 -->
+  <rect x="2.5" y="2.5" width="8" height="2" rx="0.8" fill="#1B3A5C" stroke="#00D4FF" stroke-width="0.6"/>
+  <!-- 数据条（绝对居中） -->
+  <rect x="4" y="6" width="5" height="1.2" rx="0.3" fill="#00D4FF" opacity="0.85"/>
+  <!-- 状态指示灯 -->
+  <circle cx="3.5" cy="4.7" r="0.4" fill="#80E8FF"/>
+</svg>

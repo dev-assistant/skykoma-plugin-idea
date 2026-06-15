@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13">
+  <!-- 深蓝圆角底 -->
+  <rect width="13" height="13" rx="2.5" fill="#0F2744"/>
+  <!-- 分支连线（绝对对称分布） -->
+  <path d="M6.5,6.5 L3.5,3 M6.5,6.5 L9.5,3 M6.5,6.5 L6.5,10" stroke="#00D4FF" stroke-width="0.7" stroke-linecap="round" opacity="0.7" fill="none"/>
+  <!-- 末端节点（均匀分布） -->
+  <circle cx="3.5" cy="3" r="0.8" fill="#00D4FF"/>
+  <circle cx="9.5" cy="3" r="0.8" fill="#00D4FF"/>
+  <circle cx="6.5" cy="10" r="0.8" fill="#00D4FF"/>
+  <!-- 中心节点（双层，绝对居中） -->
+  <circle cx="6.5" cy="6.5" r="1.5" fill="#00D4FF"/>
+  <circle cx="6.5" cy="6.5" r="0.6" fill="#0F2744"/>
+</svg>

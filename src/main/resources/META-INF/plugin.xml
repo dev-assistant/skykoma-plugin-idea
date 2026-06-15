@@ -60,8 +60,10 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Skykoma" anchor="right" icon="/skykoma-tool-window-icon.svg"
                     factoryClass="cn.hylstudio.skykoma.plugin.idea.toolwindow.SkykomaToolWindowFactory"/>
-        <toolWindow id="Skykoma Console" anchor="bottom" icon="/skykoma-tool-window-icon.svg"
+        <toolWindow id="Skykoma Console" anchor="bottom" icon="/skykoma-console-icon.svg"
                     factoryClass="cn.hylstudio.skykoma.plugin.idea.toolwindow.SkykomaConsoleToolWindowFactory"/>
+        <toolWindow id="Skykoma Classpath" anchor="right" icon="/skykoma-classpath-file.svg"
+                    factoryClass="cn.hylstudio.skykoma.plugin.idea.toolwindow.SkykomaClasspathToolWindowFactory"/>
         <applicationConfigurable instance="cn.hylstudio.skykoma.plugin.idea.config.IdeaPluginSettingsDialog" />
         <applicationConfigurable instance="cn.hylstudio.skykoma.plugin.idea.config.IdeaPluginCodeGenSettingsDialog" />
         <defaultLiveTemplates file="/liveTemplates/skykomaLiveTemplates.xml"/>
