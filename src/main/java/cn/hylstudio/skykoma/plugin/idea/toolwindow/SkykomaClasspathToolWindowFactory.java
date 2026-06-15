@@ -104,7 +104,7 @@ public class SkykomaClasspathToolWindowFactory implements ToolWindowFactory, Dum
 
                 ApplicationManager.getApplication().invokeLater(() -> {
                     fileTreePanel.refresh(systemCp, pluginCp, extraCp);
-                    packageTreePanel.refresh(allCp);
+                    packageTreePanel.refresh(allCp.stream().distinct().toList());
                 });
             }
         });
