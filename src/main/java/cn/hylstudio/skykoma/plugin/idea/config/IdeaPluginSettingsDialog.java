@@ -1,23 +1,31 @@
 package cn.hylstudio.skykoma.plugin.idea.config;
 
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.ui.TextBrowseFolderListener;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.TitledSeparator;
+import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.components.panels.VerticalBox;
+import com.intellij.ui.table.JBTable;
+import com.intellij.util.ui.ColumnInfo;
+import com.intellij.util.ui.ListTableModel;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static cn.hylstudio.skykoma.plugin.idea.SkykomaConstants.*;
 
@@ -31,7 +39,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
     private TextFieldWithBrowseButton python312Executable;
     private TextFieldWithBrowseButton jupyterPythonExecutable;
     private JTextField jupyterKernelName;
-    private JTextField jupyterExtraClasspath;
+    private ListTableModel<String> jupyterExtraClasspathModel;
     private JTextField agentServerListenAddress;
     private JTextField agentServerListenPort;
     private JTextField jupyterKernelHbPort;
@@ -39,14 +47,14 @@ public class IdeaPluginSettingsDialog implements Configurable {
     private JTextField jupyterKernelIopubPort;
     private JTextField jupyterKernelStdinPort;
     private JTextField jupyterKernelControlPort;
-    private JTextField pythonVenvPath;
+    private TextFieldWithBrowseButton pythonVenvPath;
     private JTextField pythonDownloadUrl;
     private JTextArea pythonPipPackages;
     private JTextField pythonPipMirror;
     private JTextField jupyterLabIp;
     private JCheckBox jupyterLabAllowRoot;
     private JTextField jupyterLabToken;
-    private JTextField jupyterLabWorkdir;
+    private TextFieldWithBrowseButton jupyterLabWorkdir;
 
     @Nls
     @Override
@@ -112,7 +120,9 @@ public class IdeaPluginSettingsDialog implements Configurable {
         python312Executable.setText(propertiesComponent.getValue(PYTHON312_EXECUTABLE, PYTHON312_EXECUTABLE_DEFAULT));
         appendField(pythonEnvPanel, "Python 3.12:", python312Executable);
 
-        pythonVenvPath = new JBTextField();
+        pythonVenvPath = new TextFieldWithBrowseButton();
+        FileChooserDescriptor singleDir = new FileChooserDescriptor(false, true, false, false, false, false);
+        pythonVenvPath.addBrowseFolderListener(new TextBrowseFolderListener(singleDir.withTitle("Select Virtualenv Path"), null));
         pythonVenvPath.setText(propertiesComponent.getValue(PYTHON_VENV_PATH, PYTHON_VENV_PATH_DEFAULT));
         appendField(pythonEnvPanel, "Venv Path:", pythonVenvPath);
 
@@ -160,9 +170,49 @@ public class IdeaPluginSettingsDialog implements Configurable {
         pipResetPanel.add(btnResetPipPackages);
         jupyterPanel.add(pipResetPanel);
 
-        jupyterExtraClasspath = new JBTextField();
-        jupyterExtraClasspath.setText(propertiesComponent.getValue(JUPYTER_EXTRA_CLASSPATH, JUPYTER_EXTRA_CLASSPATH_DEFAULT));
-        appendField(jupyterPanel, "Kernel Extra Classpath:", jupyterExtraClasspath);
+        String savedClasspath = propertiesComponent.getValue(JUPYTER_EXTRA_CLASSPATH, JUPYTER_EXTRA_CLASSPATH_DEFAULT);
+        java.util.List<String> classpathItems = new java.util.ArrayList<>();
+        if (savedClasspath != null && !savedClasspath.isEmpty()) {
+            for (String item : savedClasspath.split(File.pathSeparator)) {
+                if (!item.trim().isEmpty()) {
+                    classpathItems.add(item.trim());
+                }
+            }
+        }
+        ColumnInfo<String, String> pathColumn = new ColumnInfo<String, String>("Path") {
+            @Override
+            public String valueOf(String s) {
+                return s;
+            }
+        };
+        jupyterExtraClasspathModel = new ListTableModel<>(pathColumn);
+        jupyterExtraClasspathModel.setItems(classpathItems);
+        JBTable classpathTable = new JBTable(jupyterExtraClasspathModel);
+        classpathTable.getEmptyText().setText("No classpath entries");
+        FileChooserDescriptor jarFile = new FileChooserDescriptor(true, false, true, true, false, false)
+                .withTitle("Select JAR File");
+        ToolbarDecorator decorator = ToolbarDecorator.createDecorator(classpathTable)
+                .setAddAction(button -> {
+                    VirtualFile[] files = FileChooser.chooseFiles(jarFile, null, null);
+                    for (VirtualFile file : files) {
+                        jupyterExtraClasspathModel.addRow(file.getPath());
+                    }
+                })
+                .setEditAction(button -> {
+                    int row = classpathTable.getSelectedRow();
+                    if (row >= 0) {
+                        String current = jupyterExtraClasspathModel.getItem(row);
+                        String newValue = JOptionPane.showInputDialog(classpathTable, "Edit path:", current);
+                        if (newValue != null && !newValue.trim().isEmpty()) {
+                            jupyterExtraClasspathModel.setItem(row, newValue.trim());
+                        }
+                    }
+                })
+                .disableUpDownActions();
+        JPanel classpathPanel = decorator.createPanel();
+        classpathPanel.setPreferredSize(new Dimension(500, 120));
+        jupyterPanel.add(new JLabel("Kernel Extra Classpath:"));
+        jupyterPanel.add(classpathPanel);
 
         jupyterKernelHbPort = new JBTextField();
         jupyterKernelHbPort.setText(String.valueOf(propertiesComponent.getInt(JUPYTER_SERVER_HB_PORT, JUPYTER_SERVER_HB_PORT_DEFAULT)));
@@ -205,7 +255,9 @@ public class IdeaPluginSettingsDialog implements Configurable {
         jupyterLabToken.setText(propertiesComponent.getValue(JUPYTER_LAB_TOKEN, JUPYTER_LAB_TOKEN_DEFAULT));
         appendField(jupyterLabPanel, "Token:", jupyterLabToken);
 
-        jupyterLabWorkdir = new JBTextField();
+        jupyterLabWorkdir = new TextFieldWithBrowseButton();
+        FileChooserDescriptor singleDirWorkdir = new FileChooserDescriptor(false, true, false, false, false, false);
+        jupyterLabWorkdir.addBrowseFolderListener(new TextBrowseFolderListener(singleDirWorkdir.withTitle("Select Work Directory"), null));
         jupyterLabWorkdir.setText(propertiesComponent.getValue(JUPYTER_LAB_WORKDIR, JUPYTER_LAB_WORKDIR_DEFAULT));
         appendField(jupyterLabPanel, "Work Dir:", jupyterLabWorkdir);
 
@@ -242,7 +294,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
                 Objects.equals(pythonPipMirror.getText(), propertiesComponent.getValue(PYTHON_PIP_MIRROR, PYTHON_PIP_MIRROR_DEFAULT)) &&
                 Objects.equals(jupyterKernelName.getText(), propertiesComponent.getValue(JUPYTER_KERNEL_NAME, JUPYTER_KERNEL_NAME_DEFAULT)) &&
                 Objects.equals(jupyterPythonExecutable.getText(), propertiesComponent.getValue(JUPYTER_PYTHON_EXECUTABLE, JUPYTER_PYTHON_EXECUTABLE_DEFAULT)) &&
-                Objects.equals(jupyterExtraClasspath.getText(), propertiesComponent.getValue(JUPYTER_EXTRA_CLASSPATH, JUPYTER_EXTRA_CLASSPATH_DEFAULT)) &&
+                Objects.equals(classpathModelToString(), propertiesComponent.getValue(JUPYTER_EXTRA_CLASSPATH, JUPYTER_EXTRA_CLASSPATH_DEFAULT)) &&
                 Objects.equals(jupyterKernelHbPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_HB_PORT, JUPYTER_SERVER_HB_PORT_DEFAULT + "")) &&
                 Objects.equals(jupyterKernelShellPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_SHELL_PORT, JUPYTER_SERVER_SHELL_PORT_DEFAULT + "")) &&
                 Objects.equals(jupyterKernelIopubPort.getText(), propertiesComponent.getValue(JUPYTER_SERVER_IOPUB_PORT, JUPYTER_SERVER_IOPUB_PORT_DEFAULT + "")) &&
@@ -253,6 +305,12 @@ public class IdeaPluginSettingsDialog implements Configurable {
                 Objects.equals(jupyterLabToken.getText(), propertiesComponent.getValue(JUPYTER_LAB_TOKEN, JUPYTER_LAB_TOKEN_DEFAULT)) &&
                 Objects.equals(jupyterLabWorkdir.getText(), propertiesComponent.getValue(JUPYTER_LAB_WORKDIR, JUPYTER_LAB_WORKDIR_DEFAULT))
         );
+    }
+
+    private String classpathModelToString() {
+        return jupyterExtraClasspathModel.getItems().stream()
+                .filter(s -> !s.trim().isEmpty())
+                .collect(Collectors.joining(File.pathSeparator));
     }
 
     @Override
@@ -270,7 +328,7 @@ public class IdeaPluginSettingsDialog implements Configurable {
         propertiesComponent.setValue(PYTHON_PIP_MIRROR, pythonPipMirror.getText());
         propertiesComponent.setValue(JUPYTER_KERNEL_NAME, jupyterKernelName.getText());
         propertiesComponent.setValue(JUPYTER_PYTHON_EXECUTABLE, jupyterPythonExecutable.getText());
-        propertiesComponent.setValue(JUPYTER_EXTRA_CLASSPATH, jupyterExtraClasspath.getText());
+        propertiesComponent.setValue(JUPYTER_EXTRA_CLASSPATH, classpathModelToString());
         propertiesComponent.setValue(JUPYTER_SERVER_HB_PORT, jupyterKernelHbPort.getText());
         propertiesComponent.setValue(JUPYTER_SERVER_SHELL_PORT, jupyterKernelShellPort.getText());
         propertiesComponent.setValue(JUPYTER_SERVER_IOPUB_PORT, jupyterKernelIopubPort.getText());
