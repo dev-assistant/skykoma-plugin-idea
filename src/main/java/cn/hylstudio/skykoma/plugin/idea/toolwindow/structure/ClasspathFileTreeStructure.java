@@ -28,8 +28,11 @@ public class ClasspathFileTreeStructure {
     }
 
     private void addCategory(List<FileViewNode> nodes, String catLabel, List<String> entries) {
-        if (entries.isEmpty()) return;
         nodes.add(new FileViewNode(FileViewNode.Type.CATEGORY, catLabel, null, null, catLabel));
+        if (entries.isEmpty()) {
+            nodes.add(new FileViewNode(FileViewNode.Type.CLASS, "(empty)", null, null, catLabel));
+            return;
+        }
         for (String entry : entries) {
             File f = new File(entry);
             if (!f.exists()) continue;

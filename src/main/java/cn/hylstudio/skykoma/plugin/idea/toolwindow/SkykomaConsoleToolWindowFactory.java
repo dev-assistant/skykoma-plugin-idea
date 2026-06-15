@@ -29,7 +29,7 @@ public class SkykomaConsoleToolWindowFactory implements ToolWindowFactory, DumbA
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         SkykomaConsoleServiceImpl consoleService = (SkykomaConsoleServiceImpl) ApplicationManager.getApplication()
                 .getService(SkykomaConsoleService.class);
-
+//console view
         ConsoleView consoleView = consoleService.initConsole(project);
         JPanel consolePanel = new JPanel(new BorderLayout());
         consolePanel.add(consoleView.getComponent(), BorderLayout.CENTER);
@@ -48,10 +48,10 @@ public class SkykomaConsoleToolWindowFactory implements ToolWindowFactory, DumbA
         });
 
         Content consoleContent = ContentFactory.getInstance().createContent(consolePanel, "Console", false);
-        toolWindow.getContentManager().addContent(consoleContent);
-
+//lab console
         ConsoleView labConsoleView = consoleService.initLabConsole(project);
         JPanel labPanel = new JPanel(new BorderLayout());
+        Content labContent = ContentFactory.getInstance().createContent(labPanel, "Jupyter Lab", false);
         labPanel.add(labConsoleView.getComponent(), BorderLayout.CENTER);
 
         ApplicationManager.getApplication().invokeLater(() -> {
@@ -67,7 +67,9 @@ public class SkykomaConsoleToolWindowFactory implements ToolWindowFactory, DumbA
             labPanel.revalidate();
         });
 
-        Content labContent = ContentFactory.getInstance().createContent(labPanel, "Jupyter Lab", false);
+
         toolWindow.getContentManager().addContent(labContent);
+        toolWindow.getContentManager().addContent(consoleContent);
+
     }
 }

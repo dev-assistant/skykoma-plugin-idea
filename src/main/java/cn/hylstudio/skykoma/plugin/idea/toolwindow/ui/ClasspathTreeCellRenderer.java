@@ -5,60 +5,63 @@ import cn.hylstudio.skykoma.plugin.idea.toolwindow.model.PackageViewNode;
 import cn.hylstudio.skykoma.plugin.idea.toolwindow.structure.ClassStructureTreeStructure;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.ui.ColoredTreeCellRenderer;
+import com.intellij.ui.SimpleTextAttributes;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeCellRenderer;
-import java.awt.*;
 
-public class ClasspathTreeCellRenderer implements TreeCellRenderer {
-
-    private final JLabel label = new JLabel();
+public class ClasspathTreeCellRenderer extends ColoredTreeCellRenderer {
 
     @Override
-    public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded,
-                                                  boolean leaf, int row, boolean hasFocus) {
-        label.setOpaque(false);
-
+    public void customizeCellRenderer(@NotNull JTree tree, Object value, boolean selected,
+                                      boolean expanded, boolean leaf, int row, boolean hasFocus) {
         if (value instanceof DefaultMutableTreeNode) {
             Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
             if (userObject instanceof FileViewNode) {
                 FileViewNode node = (FileViewNode) userObject;
-                label.setText(node.getName());
                 switch (node.getType()) {
                     case CATEGORY:
-                        label.setIcon(AllIcons.Nodes.ModuleGroup);
+                        setIcon(AllIcons.Nodes.ModuleGroup);
+                        append(node.getName(), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES);
                         break;
                     case JAR:
-                        label.setIcon(AllIcons.Nodes.PpLib);
+                        setIcon(AllIcons.Nodes.PpLib);
+                        append(node.getName(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
                         break;
                     case DIRECTORY:
-                        label.setIcon(AllIcons.Nodes.Folder);
+                        setIcon(AllIcons.Nodes.Folder);
+                        append(node.getName(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
                         break;
                     case PACKAGE:
-                        label.setIcon(AllIcons.Nodes.Package);
+                        setIcon(AllIcons.Nodes.Package);
+                        append(node.getName(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
                         break;
                     case CLASS:
-                        label.setIcon(AllIcons.Nodes.Class);
+                        setIcon(AllIcons.Nodes.Class);
+                        if ("(empty)".equals(node.getName())) {
+                            append(node.getName(), SimpleTextAttributes.GRAYED_ATTRIBUTES);
+                        } else {
+                            append(node.getName(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
+                        }
                         break;
                 }
             } else if (userObject instanceof PackageViewNode) {
                 PackageViewNode node = (PackageViewNode) userObject;
-                label.setText(node.getSimpleName());
-                label.setIcon(AllIcons.Nodes.Package);
+                setIcon(AllIcons.Nodes.Package);
+                append(node.getSimpleName(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
             } else if (userObject instanceof VirtualFile) {
                 VirtualFile vf = (VirtualFile) userObject;
-                label.setText(vf.getNameWithoutExtension());
-                label.setIcon(AllIcons.Nodes.Class);
+                setIcon(AllIcons.Nodes.Class);
+                append(vf.getNameWithoutExtension(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
             } else if (userObject instanceof ClassStructureTreeStructure.StructureNode) {
                 ClassStructureTreeStructure.StructureNode node = (ClassStructureTreeStructure.StructureNode) userObject;
-                label.setText(node.getName());
-                label.setIcon(node.getIcon());
+                setIcon(node.getIcon());
+                append(node.getName(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
             } else if (userObject instanceof String) {
-                label.setText((String) userObject);
-                label.setIcon(null);
+                append((String) userObject, SimpleTextAttributes.REGULAR_ATTRIBUTES);
             }
         }
-        return label;
     }
 }

@@ -18,7 +18,6 @@ import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,16 +62,6 @@ public class SkykomaClasspathToolWindowFactory implements ToolWindowFactory, Dum
                 List<String> pluginCp = server.getPluginClasspath();
                 List<String> extraCp = server.getExtraClasspath();
 
-                if (systemCp.isEmpty() && pluginCp.isEmpty() && extraCp.isEmpty()) {
-                    String javaCp = System.getProperty("java.class.path");
-                    if (javaCp != null && !javaCp.isEmpty()) {
-                        for (String entry : javaCp.split(File.pathSeparator)) {
-                            String trimmed = entry.trim();
-                            if (!trimmed.isEmpty()) systemCp.add(trimmed);
-                        }
-                    }
-                }
-
                 List<String> allCp = new ArrayList<>();
                 allCp.addAll(systemCp);
                 allCp.addAll(pluginCp);
@@ -91,7 +80,7 @@ public class SkykomaClasspathToolWindowFactory implements ToolWindowFactory, Dum
 
                 ApplicationManager.getApplication().invokeLater(() -> {
                     fileTreePanel.refresh(systemCp, pluginCp, extraCp);
-                    packageTreePanel.refresh(allCp);
+                    packageTreePanel.refresh(allCp.stream().distinct().toList());
                 });
             }
         });

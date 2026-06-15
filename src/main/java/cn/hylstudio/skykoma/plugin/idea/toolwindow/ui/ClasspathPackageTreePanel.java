@@ -57,16 +57,16 @@ public class ClasspathPackageTreePanel extends JPanel {
         tree.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) {
-                    TreePath path = tree.getPathForLocation(e.getX(), e.getY());
-                    if (path != null) {
-                        Object lastComponent = path.getLastPathComponent();
-                        if (lastComponent instanceof DefaultMutableTreeNode) {
-                            Object userObject = ((DefaultMutableTreeNode) lastComponent).getUserObject();
-                            if (userObject instanceof VirtualFile) {
-                                FileEditorManager.getInstance(project).openFile((VirtualFile) userObject, true);
-                            }
-                        }
+                if (e.getClickCount() != 2) return;
+                int row = tree.getRowForLocation(e.getX(), e.getY());
+                if (row < 0) return;
+                TreePath path = tree.getPathForRow(row);
+                if (path == null) return;
+                Object lastComponent = path.getLastPathComponent();
+                if (lastComponent instanceof DefaultMutableTreeNode) {
+                    Object userObject = ((DefaultMutableTreeNode) lastComponent).getUserObject();
+                    if (userObject instanceof VirtualFile) {
+                        FileEditorManager.getInstance(project).openFile((VirtualFile) userObject, true);
                     }
                 }
             }
@@ -157,7 +157,6 @@ public class ClasspathPackageTreePanel extends JPanel {
         String[] parts = packageName.split("\\.");
         DefaultMutableTreeNode current = root;
         for (int i = 0; i < parts.length; i++) {
-            String part = parts[i];
             StringBuilder prefix = new StringBuilder();
             for (int j = 0; j <= i; j++) {
                 if (j > 0) prefix.append(".");
