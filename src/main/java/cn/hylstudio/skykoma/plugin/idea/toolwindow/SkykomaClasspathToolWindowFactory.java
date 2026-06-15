@@ -18,7 +18,6 @@ import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,12 +30,26 @@ public class SkykomaClasspathToolWindowFactory implements ToolWindowFactory, Dum
 
         Runnable refreshAction = () -> doRefresh(fileTreePanel, packageTreePanel);
 
-        toolWindow.setTitleActions(List.of(new AnAction("Refresh Classpath", "Refresh classpath view", AllIcons.Actions.Refresh) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                refreshAction.run();
-            }
-        }));
+        toolWindow.setTitleActions(List.of(
+                new AnAction("Expand All", "Expand all nodes", AllIcons.Actions.Expandall) {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        getActivePanel(fileTreePanel, packageTreePanel, toolWindow).expandAll();
+                    }
+                },
+                new AnAction("Collapse All", "Collapse all nodes", AllIcons.Actions.Collapseall) {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        getActivePanel(fileTreePanel, packageTreePanel, toolWindow).collapseAll();
+                    }
+                },
+                new AnAction("Refresh Classpath", "Refresh classpath view", AllIcons.Actions.Refresh) {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        refreshAction.run();
+                    }
+                }
+        ));
 
         ContentFactory contentFactory = ContentFactory.getInstance();
         Content fileContent = contentFactory.createContent(fileTreePanel, "File", false);
@@ -48,6 +61,16 @@ public class SkykomaClasspathToolWindowFactory implements ToolWindowFactory, Dum
         toolWindow.getContentManager().addContent(packageContent);
 
         refreshAction.run();
+    }
+
+    private static ClasspathFileTreePanel getActivePanel(ClasspathFileTreePanel filePanel,
+                                                          ClasspathPackageTreePanel pkgPanel,
+                                                          ToolWindow toolWindow) {
+        Content selected = toolWindow.getContentManager().getSelectedContent();
+        if (selected != null && selected.getComponent() instanceof ClasspathPackageTreePanel) {
+            return null;
+        }
+        return filePanel;
     }
 
     private void doRefresh(ClasspathFileTreePanel fileTreePanel,
@@ -62,16 +85,6 @@ public class SkykomaClasspathToolWindowFactory implements ToolWindowFactory, Dum
                 List<String> systemCp = server.getSystemClasspath();
                 List<String> pluginCp = server.getPluginClasspath();
                 List<String> extraCp = server.getExtraClasspath();
-
-                if (systemCp.isEmpty() && pluginCp.isEmpty() && extraCp.isEmpty()) {
-                    String javaCp = System.getProperty("java.class.path");
-                    if (javaCp != null && !javaCp.isEmpty()) {
-                        for (String entry : javaCp.split(File.pathSeparator)) {
-                            String trimmed = entry.trim();
-                            if (!trimmed.isEmpty()) systemCp.add(trimmed);
-                        }
-                    }
-                }
 
                 List<String> allCp = new ArrayList<>();
                 allCp.addAll(systemCp);

@@ -129,7 +129,7 @@ class KotlinReplWrapper(private val pluginClassLoader: ClassLoader) {
             val scriptClassPath = cp.distinct()
             this.scriptClassPath = scriptClassPath
             this.systemClassPath = systemClassPath
-            this.pluginClassPath = ideaCp1 + ideaCp2
+            this.pluginClassPath = (ideaCp1 + ideaCp2).distinct()
             this.extraClassPath = extraClasspath
             val kernelOwnParams =
                 KotlinKernelOwnParams(

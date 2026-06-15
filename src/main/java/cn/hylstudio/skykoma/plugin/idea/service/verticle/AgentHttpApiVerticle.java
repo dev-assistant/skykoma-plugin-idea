@@ -53,7 +53,7 @@ public class AgentHttpApiVerticle extends AbstractVerticle {
         router.route(HttpMethod.POST, "/startJupyterKernel").handler(this::startJupyterKernel);
         router.route(HttpMethod.POST, "/stopJupyterKernel").handler(this::stopJupyterKernel);
         router.route(HttpMethod.POST, "/queryJupyterKernelStatus").handler(this::queryJupyterKernelStatus);
-        router.route(HttpMethod.GET, "/getScriptClasspath").handler(this::getScriptClasspath);
+//        router.route(HttpMethod.GET, "/getScriptClasspath").handler(this::getScriptClasspath);
         // Create the HTTP server
         vertx.createHttpServer()
                 // Handle every request using the router

@@ -42,18 +42,18 @@ public class ClasspathFileTreePanel extends JPanel {
         tree.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) {
-                    TreePath path = tree.getPathForLocation(e.getX(), e.getY());
-                    if (path != null) {
-                        Object lastComponent = path.getLastPathComponent();
-                        if (lastComponent instanceof DefaultMutableTreeNode) {
-                            Object userObject = ((DefaultMutableTreeNode) lastComponent).getUserObject();
-                            if (userObject instanceof FileViewNode) {
-                                FileViewNode node = (FileViewNode) userObject;
-                                if (node.getType() == FileViewNode.Type.CLASS && node.getVFile() != null) {
-                                    FileEditorManager.getInstance(project).openFile(node.getVFile(), true);
-                                }
-                            }
+                if (e.getClickCount() != 2) return;
+                int row = tree.getRowForLocation(e.getX(), e.getY());
+                if (row < 0) return;
+                TreePath path = tree.getPathForRow(row);
+                if (path == null) return;
+                Object lastComponent = path.getLastPathComponent();
+                if (lastComponent instanceof DefaultMutableTreeNode) {
+                    Object userObject = ((DefaultMutableTreeNode) lastComponent).getUserObject();
+                    if (userObject instanceof FileViewNode) {
+                        FileViewNode node = (FileViewNode) userObject;
+                        if (node.getType() == FileViewNode.Type.CLASS && node.getVFile() != null) {
+                            FileEditorManager.getInstance(project).openFile(node.getVFile(), true);
                         }
                     }
                 }
@@ -70,6 +70,18 @@ public class ClasspathFileTreePanel extends JPanel {
 
     public void setStatus(String text) {
         ApplicationManager.getApplication().invokeLater(() -> statusLabel.setText(text));
+    }
+
+    public void expandAll() {
+        for (int i = 0; i < tree.getRowCount(); i++) {
+            tree.expandRow(i);
+        }
+    }
+
+    public void collapseAll() {
+        for (int i = tree.getRowCount() - 1; i >= 0; i--) {
+            tree.collapseRow(i);
+        }
     }
 
     public void refresh(List<String> systemCp, List<String> pluginCp, List<String> extraCp) {
