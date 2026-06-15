@@ -34,13 +34,15 @@ public class SkykomaClasspathToolWindowFactory implements ToolWindowFactory, Dum
                 new AnAction("Expand All", "Expand all nodes", AllIcons.Actions.Expandall) {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
-                        getActivePanel(fileTreePanel, packageTreePanel, toolWindow).expandAll();
+                        fileTreePanel.expandAll();
+                        packageTreePanel.expandAll();
                     }
                 },
                 new AnAction("Collapse All", "Collapse all nodes", AllIcons.Actions.Collapseall) {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
-                        getActivePanel(fileTreePanel, packageTreePanel, toolWindow).collapseAll();
+                        fileTreePanel.collapseAll();
+                        packageTreePanel.collapseAll();
                     }
                 },
                 new AnAction("Refresh Classpath", "Refresh classpath view", AllIcons.Actions.Refresh) {
@@ -61,16 +63,6 @@ public class SkykomaClasspathToolWindowFactory implements ToolWindowFactory, Dum
         toolWindow.getContentManager().addContent(packageContent);
 
         refreshAction.run();
-    }
-
-    private static ClasspathFileTreePanel getActivePanel(ClasspathFileTreePanel filePanel,
-                                                          ClasspathPackageTreePanel pkgPanel,
-                                                          ToolWindow toolWindow) {
-        Content selected = toolWindow.getContentManager().getSelectedContent();
-        if (selected != null && selected.getComponent() instanceof ClasspathPackageTreePanel) {
-            return null;
-        }
-        return filePanel;
     }
 
     private void doRefresh(ClasspathFileTreePanel fileTreePanel,
@@ -104,7 +96,7 @@ public class SkykomaClasspathToolWindowFactory implements ToolWindowFactory, Dum
 
                 ApplicationManager.getApplication().invokeLater(() -> {
                     fileTreePanel.refresh(systemCp, pluginCp, extraCp);
-                    packageTreePanel.refresh(allCp.stream().distinct().toList());
+                    packageTreePanel.refresh(allCp);
                 });
             }
         });
